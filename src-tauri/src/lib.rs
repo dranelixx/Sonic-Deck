@@ -8,9 +8,10 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::thread;
 use std::time::Duration;
+use std::path::PathBuf;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, Stream};
-use tauri::State;
+use tauri::{Emitter, Manager, State};
 
 // Symphonia imports for audio decoding
 use symphonia::core::audio::SampleBuffer;
@@ -34,6 +35,30 @@ pub struct AudioDevice {
     pub name: String,
     /// Whether this is the system default device
     pub is_default: bool,
+}
+
+/// Application settings for device routing and preferences
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AppSettings {
+    /// Selected monitor output device ID
+    pub monitor_device_id: Option<String>,
+    /// Selected broadcast output device ID
+    pub broadcast_device_id: Option<String>,
+    /// Default volume (0.0 - 1.0)
+    pub default_volume: f32,
+    /// Last used audio file path (for convenience)
+    pub last_file_path: Option<String>,
+}
+
+impl Default for AppSettings {
+    fn default() -> Self {
+        Self {
+            monitor_device_id: None,
+            broadcast_device_id: None,
+            default_volume: 0.5,
+            last_file_path: None,
+        }
+    }
 }
 
 /// Holds audio data decoded from file
@@ -243,7 +268,7 @@ fn create_playback_stream(
     Ok(stream)
 }
 
-/// Write audio data to f32 output buffer with resampling
+/// Write audio data to f32 output buffer with resampling (linear interpolation)
 fn write_audio_f32(
     output: &mut [f32],
     audio_data: &AudioData,
@@ -254,31 +279,43 @@ fn write_audio_f32(
 ) {
     let mut index = sample_index.lock().unwrap();
     let input_channels = audio_data.channels as usize;
+    let max_frame = (audio_data.samples.len() / input_channels) as f64;
     
     for frame in output.chunks_mut(output_channels) {
-        let frame_idx = (*index as usize) * input_channels;
-        
-        if frame_idx >= audio_data.samples.len() {
+        if *index >= max_frame - 1.0 {
+            // End of audio - silence
             for sample in frame.iter_mut() {
                 *sample = 0.0;
             }
             continue;
         }
         
+        // Linear interpolation between samples
+        let frame_idx = *index as usize;
+        let frac = *index - frame_idx as f64; // Fractional part for interpolation
+        
         for (ch, sample) in frame.iter_mut().enumerate() {
-            let input_idx = frame_idx + (ch % input_channels);
-            *sample = if input_idx < audio_data.samples.len() {
-                audio_data.samples[input_idx] * volume
+            let ch_idx = ch % input_channels;
+            let idx1 = frame_idx * input_channels + ch_idx;
+            let idx2 = (frame_idx + 1) * input_channels + ch_idx;
+            
+            if idx2 < audio_data.samples.len() {
+                // Linear interpolation: value = sample1 + (sample2 - sample1) * frac
+                let sample1 = audio_data.samples[idx1];
+                let sample2 = audio_data.samples[idx2];
+                *sample = (sample1 + (sample2 - sample1) * frac as f32) * volume;
+            } else if idx1 < audio_data.samples.len() {
+                *sample = audio_data.samples[idx1] * volume;
             } else {
-                0.0
-            };
+                *sample = 0.0;
+            }
         }
         
         *index += rate_ratio;
     }
 }
 
-/// Write audio data to i16 output buffer with resampling
+/// Write audio data to i16 output buffer with resampling (linear interpolation)
 fn write_audio_i16(
     output: &mut [i16],
     audio_data: &AudioData,
@@ -289,21 +326,32 @@ fn write_audio_i16(
 ) {
     let mut index = sample_index.lock().unwrap();
     let input_channels = audio_data.channels as usize;
+    let max_frame = (audio_data.samples.len() / input_channels) as f64;
     
     for frame in output.chunks_mut(output_channels) {
-        let frame_idx = (*index as usize) * input_channels;
-        
-        if frame_idx >= audio_data.samples.len() {
+        if *index >= max_frame - 1.0 {
+            // End of audio - silence
             for sample in frame.iter_mut() {
                 *sample = 0;
             }
             continue;
         }
         
+        // Linear interpolation between samples
+        let frame_idx = *index as usize;
+        let frac = *index - frame_idx as f64;
+        
         for (ch, sample) in frame.iter_mut().enumerate() {
-            let input_idx = frame_idx + (ch % input_channels);
-            let value = if input_idx < audio_data.samples.len() {
-                audio_data.samples[input_idx] * volume
+            let ch_idx = ch % input_channels;
+            let idx1 = frame_idx * input_channels + ch_idx;
+            let idx2 = (frame_idx + 1) * input_channels + ch_idx;
+            
+            let value = if idx2 < audio_data.samples.len() {
+                let sample1 = audio_data.samples[idx1];
+                let sample2 = audio_data.samples[idx2];
+                (sample1 + (sample2 - sample1) * frac as f32) * volume
+            } else if idx1 < audio_data.samples.len() {
+                audio_data.samples[idx1] * volume
             } else {
                 0.0
             };
@@ -314,7 +362,7 @@ fn write_audio_i16(
     }
 }
 
-/// Write audio data to u16 output buffer with resampling
+/// Write audio data to u16 output buffer with resampling (linear interpolation)
 fn write_audio_u16(
     output: &mut [u16],
     audio_data: &AudioData,
@@ -325,21 +373,32 @@ fn write_audio_u16(
 ) {
     let mut index = sample_index.lock().unwrap();
     let input_channels = audio_data.channels as usize;
+    let max_frame = (audio_data.samples.len() / input_channels) as f64;
     
     for frame in output.chunks_mut(output_channels) {
-        let frame_idx = (*index as usize) * input_channels;
-        
-        if frame_idx >= audio_data.samples.len() {
+        if *index >= max_frame - 1.0 {
+            // End of audio - silence
             for sample in frame.iter_mut() {
                 *sample = 32768;
             }
             continue;
         }
         
+        // Linear interpolation between samples
+        let frame_idx = *index as usize;
+        let frac = *index - frame_idx as f64;
+        
         for (ch, sample) in frame.iter_mut().enumerate() {
-            let input_idx = frame_idx + (ch % input_channels);
-            let value = if input_idx < audio_data.samples.len() {
-                audio_data.samples[input_idx] * volume
+            let ch_idx = ch % input_channels;
+            let idx1 = frame_idx * input_channels + ch_idx;
+            let idx2 = (frame_idx + 1) * input_channels + ch_idx;
+            
+            let value = if idx2 < audio_data.samples.len() {
+                let sample1 = audio_data.samples[idx1];
+                let sample2 = audio_data.samples[idx2];
+                (sample1 + (sample2 - sample1) * frac as f32) * volume
+            } else if idx1 < audio_data.samples.len() {
+                audio_data.samples[idx1] * volume
             } else {
                 0.0
             };
@@ -397,11 +456,9 @@ fn play_dual_output(
     device_id_2: String,
     volume: f32,
     manager: State<'_, AudioManager>,
+    app_handle: tauri::AppHandle,
 ) -> Result<String, String> {
     let volume = volume.clamp(0.0, 1.0);
-
-    // Decode audio file
-    let audio_data = Arc::new(decode_audio_file(&file_path)?);
 
     // Generate playback ID
     let playback_id = manager.next_playback_id();
@@ -419,8 +476,23 @@ fn play_dual_output(
     let playback_id_clone = playback_id.clone();
     let manager_inner = manager.stop_senders.clone();
     
-    // Spawn dedicated playback thread
+    // Spawn dedicated playback thread (including decoding to avoid blocking UI)
     thread::spawn(move || {
+        // Decode audio file in background thread
+        let audio_data = match decode_audio_file(&file_path) {
+            Ok(data) => Arc::new(data),
+            Err(e) => {
+                eprintln!("Failed to decode audio: {}", e);
+                manager_inner.lock().unwrap().remove(&playback_id_clone);
+                // Emit error event
+                let _ = app_handle.emit("audio-decode-error", format!("Failed to decode: {}", e));
+                return;
+            }
+        };
+        
+        // Emit event that decoding is complete and playback is starting
+        let _ = app_handle.emit("audio-decode-complete", &playback_id_clone);
+        
         // This thread owns the streams - no Send issues!
         let host = cpal::default_host();
         
@@ -438,13 +510,13 @@ fn play_dual_output(
             .and_then(|s| s.parse::<usize>().ok());
         let device_2_idx = device_id_2.strip_prefix("device_")
             .and_then(|s| s.parse::<usize>().ok());
-        
+
         let (Some(idx1), Some(idx2)) = (device_1_idx, device_2_idx) else {
             eprintln!("Invalid device IDs");
             manager_inner.lock().unwrap().remove(&playback_id_clone);
             return;
         };
-        
+
         let (Some(device_1), Some(device_2)) = (output_devices.get(idx1), output_devices.get(idx2)) else {
             eprintln!("Devices not found");
             manager_inner.lock().unwrap().remove(&playback_id_clone);
@@ -460,7 +532,7 @@ fn play_dual_output(
                 return;
             }
         };
-        
+
         let stream_2 = match create_playback_stream(device_2, audio_data.clone(), volume_state.clone()) {
             Ok(s) => s,
             Err(e) => {
@@ -519,6 +591,67 @@ fn stop_playback(
 }
 
 // ============================================================================
+// SETTINGS MANAGEMENT
+// ============================================================================
+
+/// Get the path to the settings file
+fn get_settings_path(app_handle: tauri::AppHandle) -> Result<PathBuf, String> {
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
+    
+    // Ensure directory exists
+    std::fs::create_dir_all(&app_data_dir)
+        .map_err(|e| format!("Failed to create app data directory: {}", e))?;
+    
+    Ok(app_data_dir.join("settings.json"))
+}
+
+/// Load application settings from disk
+#[tauri::command]
+fn load_settings(app_handle: tauri::AppHandle) -> Result<AppSettings, String> {
+    let settings_path = get_settings_path(app_handle)?;
+    
+    if !settings_path.exists() {
+        // Return default settings if file doesn't exist
+        return Ok(AppSettings::default());
+    }
+    
+    let content = std::fs::read_to_string(&settings_path)
+        .map_err(|e| format!("Failed to read settings file: {}", e))?;
+    
+    let settings: AppSettings = serde_json::from_str(&content)
+        .map_err(|e| format!("Failed to parse settings: {}", e))?;
+    
+    Ok(settings)
+}
+
+/// Save application settings to disk
+#[tauri::command]
+fn save_settings(
+    settings: AppSettings,
+    app_handle: tauri::AppHandle,
+) -> Result<(), String> {
+    let settings_path = get_settings_path(app_handle)?;
+    
+    let json = serde_json::to_string_pretty(&settings)
+        .map_err(|e| format!("Failed to serialize settings: {}", e))?;
+    
+    std::fs::write(&settings_path, json)
+        .map_err(|e| format!("Failed to write settings file: {}", e))?;
+    
+    Ok(())
+}
+
+/// Get the settings file path (for debugging/info)
+#[tauri::command]
+fn get_settings_file_path(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let path = get_settings_path(app_handle)?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+// ============================================================================
 // TAURI APP INITIALIZATION
 // ============================================================================
 
@@ -526,12 +659,16 @@ fn stop_playback(
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_fs::init())
         .manage(AudioManager::new())
         .invoke_handler(tauri::generate_handler![
             list_audio_devices,
             play_dual_output,
             stop_all_audio,
             stop_playback,
+            load_settings,
+            save_settings,
+            get_settings_file_path,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
