@@ -45,7 +45,7 @@ class WaveformQueue {
 
       // Small delay between requests
       if (this.queue.length > 0) {
-        await new Promise(resolve => setTimeout(resolve, this.delay));
+        await new Promise((resolve) => setTimeout(resolve, this.delay));
       }
     }
 

@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🚀 Running pre-commit checks for SonicDeck..."
+
+# TypeScript type check
+echo "🔍 TypeScript compilation check..."
+yarn typecheck || exit 1
+
+# Lint and format staged files
+echo "🧹 Linting and formatting..."
+yarn lint-staged || exit 1
+
+# Rust compilation check
+echo "🦀 Rust compilation check..."
+cd src-tauri && cargo check --quiet || exit 1
+
+echo "✅ Pre-commit checks passed!"

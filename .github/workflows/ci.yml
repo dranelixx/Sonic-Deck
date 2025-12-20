@@ -1,0 +1,62 @@
+name: CI - Code Quality
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  code-quality:
+    name: Code Quality Checks
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            src-tauri/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install frontend dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: TypeScript type check
+        run: yarn typecheck
+
+      - name: ESLint check
+        run: yarn lint
+
+      - name: Prettier format check
+        run: yarn format:check
+
+      - name: Build frontend for Rust compilation
+        run: yarn build
+
+      - name: Rust format check
+        run: cd src-tauri && cargo fmt -- --check
+
+      - name: Rust clippy
+        run: cd src-tauri && cargo clippy -- -D warnings
+
+      - name: Rust compilation check
+        run: cd src-tauri && cargo check

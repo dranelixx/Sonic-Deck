@@ -22,11 +22,15 @@ export default function CategoryTabs({
   const [isAdding, setIsAdding] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
+    null
+  );
   const [editingCategoryName, setEditingCategoryName] = useState("");
 
   // Sort categories by sort_order
-  const sortedCategories = [...categories].sort((a, b) => a.sort_order - b.sort_order);
+  const sortedCategories = [...categories].sort(
+    (a, b) => a.sort_order - b.sort_order
+  );
 
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) return;
@@ -57,9 +61,9 @@ export default function CategoryTabs({
   };
 
   const handleEditCategory = (categoryId: string) => {
-    const category = categories.find(c => c.id === categoryId);
+    const category = categories.find((c) => c.id === categoryId);
     if (!category) return;
-    
+
     setEditingCategoryId(categoryId);
     setEditingCategoryName(category.name);
     onContextMenuChange(null);
@@ -89,10 +93,14 @@ export default function CategoryTabs({
   };
 
   const handleDeleteCategory = async (categoryId: string) => {
-    const category = categories.find(c => c.id === categoryId);
+    const category = categories.find((c) => c.id === categoryId);
     if (!category) return;
 
-    if (!confirm(`Delete category "${category.name}"?\n\nWarning: All sounds in this category will also be deleted!`)) {
+    if (
+      !confirm(
+        `Delete category "${category.name}"?\n\nWarning: All sounds in this category will also be deleted!`
+      )
+    ) {
       return;
     }
 
@@ -173,13 +181,13 @@ export default function CategoryTabs({
 
               {/* Context Menu - Must be above everything */}
               {openContextMenuId === category.id && (
-                <div 
+                <div
                   className="fixed top-full left-0 mt-1 z-[9999] bg-discord-darker
                             border border-discord-dark rounded-lg shadow-xl py-1 min-w-32"
                   style={{
-                    position: 'fixed',
-                    top: '160px',
-                    left: 'auto',
+                    position: "fixed",
+                    top: "160px",
+                    left: "auto",
                   }}
                   onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside menu
                 >

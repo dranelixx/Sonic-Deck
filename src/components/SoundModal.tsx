@@ -17,9 +17,29 @@ interface SoundModalProps {
 // Common emojis for sound icons - 3 rows of 8
 const ICON_OPTIONS = [
   null, // No icon
-  "🔊", "🎵", "🎶", "🎤", "🎸", "🥁", "🎹",
-  "🎺", "🔔", "📢", "🗣️", "👏", "😂", "😱", "🎉",
-  "💥", "🚀", "✨", "🔥", "💀", "👻", "🤖", "🎮",
+  "🔊",
+  "🎵",
+  "🎶",
+  "🎤",
+  "🎸",
+  "🥁",
+  "🎹",
+  "🎺",
+  "🔔",
+  "📢",
+  "🗣️",
+  "👏",
+  "😂",
+  "😱",
+  "🎉",
+  "💥",
+  "🚀",
+  "✨",
+  "🔥",
+  "💀",
+  "👻",
+  "🤖",
+  "🎮",
 ];
 
 export default function SoundModal({
@@ -39,7 +59,7 @@ export default function SoundModal({
   const [useCustomVolume, setUseCustomVolume] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Emoji search state
   const [emojiSearch, setEmojiSearch] = useState("");
   const [emojiData, setEmojiData] = useState<CompactEmoji[]>([]);
@@ -71,7 +91,8 @@ export default function SoundModal({
         // Search in label (name)
         if (emoji.label?.toLowerCase().includes(search)) return true;
         // Search in tags
-        if (emoji.tags?.some(tag => tag.toLowerCase().includes(search))) return true;
+        if (emoji.tags?.some((tag) => tag.toLowerCase().includes(search)))
+          return true;
         return false;
       })
       .slice(0, 20); // Limit to 20 results
@@ -98,7 +119,7 @@ export default function SoundModal({
         setIcon(null);
         setVolume(null);
         setUseCustomVolume(false);
-        
+
         // Auto-generate name from defaultFilePath if provided
         if (path) {
           const fileName = path.split(/[/\\]/).pop() || "";
@@ -117,24 +138,24 @@ export default function SoundModal({
   const formatFileName = (fileName: string): string => {
     // Remove extension
     const nameWithoutExtension = fileName.replace(/\.[^/.]+$/, "");
-    
+
     // Replace dashes and underscores with spaces
     let formatted = nameWithoutExtension.replace(/[-_]/g, " ");
-    
+
     // IMPORTANT: Capitalize BEFORE umlaut conversion to avoid "VerrüCkter"
     // Capitalize first letter of each word
-    formatted = formatted.replace(/\b\w/g, char => char.toUpperCase());
-    
+    formatted = formatted.replace(/\b\w/g, (char) => char.toUpperCase());
+
     // Convert common umlaut patterns AFTER capitalization
     // Handle capitalized versions first
-    formatted = formatted.replace(/Ae/g, 'Ä');
-    formatted = formatted.replace(/Oe/g, 'Ö');
-    formatted = formatted.replace(/Ue/g, 'Ü');
+    formatted = formatted.replace(/Ae/g, "Ä");
+    formatted = formatted.replace(/Oe/g, "Ö");
+    formatted = formatted.replace(/Ue/g, "Ü");
     // Then lowercase versions
-    formatted = formatted.replace(/ae/g, 'ä');
-    formatted = formatted.replace(/oe/g, 'ö');
-    formatted = formatted.replace(/ue/g, 'ü');
-    
+    formatted = formatted.replace(/ae/g, "ä");
+    formatted = formatted.replace(/oe/g, "ö");
+    formatted = formatted.replace(/ue/g, "ü");
+
     return formatted;
   };
 
@@ -159,17 +180,17 @@ export default function SoundModal({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     const files = Array.from(e.dataTransfer.files);
-    const audioFile = files.find(f =>
-      f.type.startsWith("audio/") ||
-      /\.(mp3|wav|ogg|m4a|flac)$/i.test(f.name)
+    const audioFile = files.find(
+      (f) =>
+        f.type.startsWith("audio/") || /\.(mp3|wav|ogg|m4a|flac)$/i.test(f.name)
     );
 
     if (audioFile) {
       // In Tauri, we need the full path - try to get it from the path property
       const path = (audioFile as { path?: string }).path || audioFile.name;
-      if (path && path.includes('/') || path.includes('\\')) {
+      if ((path && path.includes("/")) || path.includes("\\")) {
         handleFilePathChange(path);
       }
     }
@@ -180,10 +201,12 @@ export default function SoundModal({
     try {
       const selected = await open({
         multiple: false,
-        filters: [{
-          name: "Audio Files",
-          extensions: ["mp3", "wav", "ogg", "m4a", "flac"]
-        }]
+        filters: [
+          {
+            name: "Audio Files",
+            extensions: ["mp3", "wav", "ogg", "m4a", "flac"],
+          },
+        ],
       });
 
       if (selected && typeof selected === "string") {
@@ -259,14 +282,13 @@ export default function SoundModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative bg-discord-dark rounded-lg shadow-xl w-full max-w-md
-                    border border-discord-darker p-6 mx-4">
+      <div
+        className="relative bg-discord-dark rounded-lg shadow-xl w-full max-w-md
+                    border border-discord-darker p-6 mx-4"
+      >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-discord-text">
@@ -283,8 +305,10 @@ export default function SoundModal({
 
         {/* Error */}
         {error && (
-          <div className="mb-4 p-3 bg-discord-danger/20 border border-discord-danger
-                        rounded-lg text-discord-danger text-sm">
+          <div
+            className="mb-4 p-3 bg-discord-danger/20 border border-discord-danger
+                        rounded-lg text-discord-danger text-sm"
+          >
             {error}
           </div>
         )}
@@ -355,7 +379,8 @@ export default function SoundModal({
             >
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
-                  {cat.icon && `${cat.icon} `}{cat.name}
+                  {cat.icon && `${cat.icon} `}
+                  {cat.name}
                 </option>
               ))}
             </select>
@@ -366,13 +391,15 @@ export default function SoundModal({
             <label className="block text-sm font-medium text-discord-text-muted mb-2">
               Icon (optional)
             </label>
-            
+
             {/* Show selected emoji */}
             {icon && (
               <div className="mb-3 p-4 bg-discord-dark rounded-lg flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="text-4xl">{icon}</span>
-                  <span className="text-sm text-discord-text-muted">Selected</span>
+                  <span className="text-sm text-discord-text-muted">
+                    Selected
+                  </span>
                 </div>
                 <button
                   type="button"
@@ -387,7 +414,7 @@ export default function SoundModal({
                 </button>
               </div>
             )}
-            
+
             {/* Quick select buttons - 3 rows */}
             <div className="flex flex-wrap gap-2 mb-3">
               {ICON_OPTIONS.map((opt, idx) => (
@@ -400,16 +427,17 @@ export default function SoundModal({
                   }}
                   className={`w-10 h-10 rounded-lg flex items-center justify-center
                            text-lg transition-colors
-                           ${icon === opt
-                             ? "bg-discord-primary text-white"
-                             : "bg-discord-darker hover:bg-discord-dark text-discord-text"
+                           ${
+                             icon === opt
+                               ? "bg-discord-primary text-white"
+                               : "bg-discord-darker hover:bg-discord-dark text-discord-text"
                            }`}
                 >
                   {opt || "∅"}
                 </button>
               ))}
             </div>
-            
+
             {/* Combined search and paste input */}
             <div className="relative">
               <input
@@ -429,11 +457,13 @@ export default function SoundModal({
                          px-3 py-2 text-discord-text text-sm focus:outline-none
                          focus:ring-2 focus:ring-discord-primary"
               />
-              
+
               {/* Search results dropdown */}
               {filteredEmojis.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-discord-darker border border-discord-dark
-                              rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                <div
+                  className="absolute z-10 w-full mt-1 bg-discord-darker border border-discord-dark
+                              rounded-lg shadow-xl max-h-48 overflow-y-auto"
+                >
                   {filteredEmojis.map((emoji, idx) => (
                     <button
                       key={idx}
@@ -446,7 +476,9 @@ export default function SoundModal({
                                transition-colors flex items-center gap-2"
                     >
                       <span className="text-xl">{emoji.unicode}</span>
-                      <span className="text-sm text-discord-text">{emoji.label}</span>
+                      <span className="text-sm text-discord-text">
+                        {emoji.label}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -481,10 +513,13 @@ export default function SoundModal({
                   onChange={(e) => setVolume(parseFloat(e.target.value))}
                   className="flex-1"
                   style={{
-                    accentColor: (volume || 0.5) >= 0.75 ? "#ef4444" : "#5865f2",
+                    accentColor:
+                      (volume || 0.5) >= 0.75 ? "#ef4444" : "#5865f2",
                   }}
                 />
-                <span className={`text-sm w-12 text-right ${(volume || 0.5) >= 0.75 ? "text-red-400" : "text-discord-text"}`}>
+                <span
+                  className={`text-sm w-12 text-right ${(volume || 0.5) >= 0.75 ? "text-red-400" : "text-discord-text"}`}
+                >
                   {Math.round((volume || 0.5) * 100)}%
                 </span>
               </div>
@@ -510,7 +545,11 @@ export default function SoundModal({
                      disabled:bg-gray-600 disabled:cursor-not-allowed
                      rounded-lg text-white font-medium transition-colors"
           >
-            {isSubmitting ? "Saving..." : isEditMode ? "Save Changes" : "Add Sound"}
+            {isSubmitting
+              ? "Saving..."
+              : isEditMode
+                ? "Save Changes"
+                : "Add Sound"}
           </button>
         </div>
       </div>

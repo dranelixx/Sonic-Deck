@@ -51,7 +51,8 @@ function MiniWaveformComponent({
     loadedPathRef.current = filePath;
 
     // Use global queue to throttle requests
-    waveformQueue.add(filePath, 40)
+    waveformQueue
+      .add(filePath, 40)
       .then((data) => {
         setPeaks(data.peaks);
       })
@@ -72,11 +73,11 @@ function MiniWaveformComponent({
     // Get actual container dimensions
     const rect = container.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
-    
+
     // Set canvas size with device pixel ratio for sharp rendering
     canvas.width = rect.width * dpr;
     canvas.height = height * dpr;
-    
+
     // Scale context to match device pixel ratio
     ctx.scale(dpr, dpr);
 
@@ -97,12 +98,7 @@ function MiniWaveformComponent({
 
       // Draw bar centered vertically with spacing
       const actualBarWidth = Math.max(1, barWidth - 1);
-      ctx.fillRect(
-        x,
-        midY - barHeight,
-        actualBarWidth,
-        barHeight * 2
-      );
+      ctx.fillRect(x, midY - barHeight, actualBarWidth, barHeight * 2);
     }
   }, [peaks, isPlaying, height]);
 

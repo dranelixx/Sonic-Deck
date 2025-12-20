@@ -6,7 +6,11 @@ interface ToastProps {
   duration?: number;
 }
 
-export default function Toast({ message, onClose, duration = 3000 }: ToastProps) {
+export default function Toast({
+  message,
+  onClose,
+  duration = 3000,
+}: ToastProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
 
@@ -33,19 +37,17 @@ export default function Toast({ message, onClose, duration = 3000 }: ToastProps)
   }, [onClose, duration]);
 
   return (
-    <div 
+    <div
       className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all ease-in-out ${
-        isExiting 
-          ? 'opacity-0 translate-y-24 duration-500' 
+        isExiting
+          ? "opacity-0 translate-y-24 duration-500"
           : isVisible
-          ? 'opacity-100 translate-y-0 duration-300'
-          : 'opacity-0 translate-y-24 duration-0'
+            ? "opacity-100 translate-y-0 duration-300"
+            : "opacity-0 translate-y-24 duration-0"
       }`}
     >
       <div className="bg-discord-darker border border-discord-dark rounded-full px-6 py-3 shadow-lg">
-        <p className="text-sm text-discord-text whitespace-nowrap">
-          {message}
-        </p>
+        <p className="text-sm text-discord-text whitespace-nowrap">{message}</p>
       </div>
     </div>
   );

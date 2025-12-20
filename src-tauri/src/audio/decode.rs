@@ -26,12 +26,16 @@ pub fn decode_audio_file(file_path: &str) -> Result<AudioData, AudioError> {
     }
 
     let probed = symphonia::default::get_probe()
-        .format(&hint, media_source, &FormatOptions::default(), &MetadataOptions::default())
+        .format(
+            &hint,
+            media_source,
+            &FormatOptions::default(),
+            &MetadataOptions::default(),
+        )
         .map_err(|e| AudioError::ProbeFormat(e.to_string()))?;
 
     let mut format = probed.format;
-    let track = format.default_track()
-        .ok_or(AudioError::NoTracks)?;
+    let track = format.default_track().ok_or(AudioError::NoTracks)?;
 
     let track_id = track.id;
     let mut decoder = symphonia::default::get_codecs()
@@ -45,7 +49,9 @@ pub fn decode_audio_file(file_path: &str) -> Result<AudioData, AudioError> {
     loop {
         let packet = match format.next_packet() {
             Ok(packet) => packet,
-            Err(SymphoniaError::IoError(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => break,
+            Err(SymphoniaError::IoError(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+                break
+            }
             Err(e) => return Err(AudioError::PacketRead(e.to_string())),
         };
 

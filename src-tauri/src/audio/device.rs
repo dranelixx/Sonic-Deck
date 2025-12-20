@@ -15,7 +15,8 @@ pub fn enumerate_devices() -> Result<Vec<AudioDevice>, AudioError> {
         .and_then(|d| d.name().ok())
         .unwrap_or_default();
 
-    let output_devices = host.output_devices()
+    let output_devices = host
+        .output_devices()
         .map_err(|e| AudioError::DeviceEnumeration(e.to_string()))?;
 
     for (index, device) in output_devices.enumerate() {

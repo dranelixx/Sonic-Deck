@@ -1,0 +1,91 @@
+name: Release - Windows Build
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'v*.*.*-*'
+
+jobs:
+  build-and-release:
+    name: Build and Release Windows
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            src-tauri/target/
+          key: windows-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install frontend dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run code quality checks
+        run: |
+          yarn typecheck
+          yarn lint
+          yarn format:check
+
+      - name: Build frontend
+        run: yarn build
+
+      - name: Build Tauri app
+        run: yarn tauri build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get tag name
+        id: tag
+        run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: SonicDeck ${{ steps.tag.outputs.tag }}
+          body: |
+            ## SonicDeck ${{ steps.tag.outputs.tag }}
+            
+            ### Downloads
+            - **Windows Installer (.msi)**: Recommended for most users
+            - **Windows Portable (.exe)**: Standalone executable
+            
+            ### Features
+            - Dual-output audio routing
+            - Sound library management with categories
+            - Waveform visualization and trim editor
+            - Audio caching for instant playback
+            
+            ### System Requirements
+            - Windows 10 or later
+            - Audio devices with separate monitor/broadcast outputs
+            
+            ---
+            *Built automatically from commit: ${{ github.sha }}*
+          files: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
+          draft: false
+          prerelease: ${{ contains(steps.tag.outputs.tag, '-') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

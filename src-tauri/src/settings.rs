@@ -66,8 +66,8 @@ pub fn load(app_handle: &tauri::AppHandle) -> Result<AppSettings, String> {
     let content = std::fs::read_to_string(&settings_path)
         .map_err(|e| format!("Failed to read settings file: {}", e))?;
 
-    let settings: AppSettings = serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse settings: {}", e))?;
+    let settings: AppSettings =
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse settings: {}", e))?;
 
     Ok(settings)
 }

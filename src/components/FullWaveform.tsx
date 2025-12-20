@@ -64,11 +64,11 @@ export default function FullWaveform({
     // Get actual container dimensions
     const rect = container.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
-    
+
     // Set canvas size with device pixel ratio for sharp rendering
     canvas.width = rect.width * dpr;
     canvas.height = 32 * dpr;
-    
+
     // Scale context to match device pixel ratio
     ctx.scale(dpr, dpr);
 
@@ -79,15 +79,16 @@ export default function FullWaveform({
     // Calculate progress
     // If trimmed, the duration from backend is already the trimmed duration
     const effectiveDuration = durationMs > 0 ? durationMs : actualDuration;
-    const progress = effectiveDuration > 0 ? currentTimeMs / effectiveDuration : 0;
+    const progress =
+      effectiveDuration > 0 ? currentTimeMs / effectiveDuration : 0;
     const progressX = progress * width;
-    
+
     // Calculate trim range for waveform display
     // The waveform peaks represent the full audio, so we need to show only the trimmed portion
     const totalDuration = actualDuration;
     const startMs = trimStartMs ?? 0;
     const endMs = trimEndMs ?? totalDuration;
-    
+
     // Calculate which portion of peaks to show
     const startRatio = totalDuration > 0 ? startMs / totalDuration : 0;
     const endRatio = totalDuration > 0 ? endMs / totalDuration : 1;
@@ -110,12 +111,7 @@ export default function FullWaveform({
 
       // Draw bar centered vertically with spacing
       const actualBarWidth = Math.max(1, visibleBarWidth - 0.5);
-      ctx.fillRect(
-        x,
-        midY - barHeight,
-        actualBarWidth,
-        barHeight * 2
-      );
+      ctx.fillRect(x, midY - barHeight, actualBarWidth, barHeight * 2);
     }
 
     // Draw progress cursor
@@ -127,7 +123,15 @@ export default function FullWaveform({
       ctx.lineTo(progressX, height);
       ctx.stroke();
     }
-  }, [peaks, currentTimeMs, durationMs, actualDuration, isPlaying, trimStartMs, trimEndMs]);
+  }, [
+    peaks,
+    currentTimeMs,
+    durationMs,
+    actualDuration,
+    isPlaying,
+    trimStartMs,
+    trimEndMs,
+  ]);
 
   const formatTime = useCallback((ms: number): string => {
     const totalSeconds = Math.floor(ms / 1000);

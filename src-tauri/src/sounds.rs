@@ -169,8 +169,8 @@ pub fn load(app_handle: &tauri::AppHandle) -> Result<SoundLibrary, String> {
     let content = std::fs::read_to_string(&sounds_path)
         .map_err(|e| format!("Failed to read sounds file: {}", e))?;
 
-    let library: SoundLibrary = serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse sounds: {}", e))?;
+    let library: SoundLibrary =
+        serde_json::from_str(&content).map_err(|e| format!("Failed to parse sounds: {}", e))?;
 
     Ok(library)
 }
@@ -277,12 +277,13 @@ pub fn delete_sound(library: &mut SoundLibrary, sound_id: &SoundId) -> Result<()
 }
 
 /// Add a new category
-pub fn add_category(
-    library: &mut SoundLibrary,
-    name: String,
-    icon: Option<String>,
-) -> Category {
-    let max_order = library.categories.iter().map(|c| c.sort_order).max().unwrap_or(0);
+pub fn add_category(library: &mut SoundLibrary, name: String, icon: Option<String>) -> Category {
+    let max_order = library
+        .categories
+        .iter()
+        .map(|c| c.sort_order)
+        .max()
+        .unwrap_or(0);
 
     let category = Category {
         id: CategoryId::new(),

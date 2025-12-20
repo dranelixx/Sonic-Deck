@@ -1,0 +1,25 @@
+# Build outputs
+dist/
+build/
+out/
+src-tauri/target/
+src-tauri/gen/
+
+# Dependencies
+node_modules/
+.yarn/
+
+# Config files that should keep their formatting
+*.config.js
+*.config.ts
+tailwind.config.js
+vite.config.ts
+
+# Lock files
+yarn.lock
+package-lock.json
+Cargo.lock
+
+# Other
+.env*
+*.log

@@ -2,9 +2,9 @@
 //!
 //! Handles cpal stream creation with sample rate conversion using linear interpolation.
 
-use std::sync::{Arc, Mutex};
 use cpal::traits::{DeviceTrait, StreamTrait};
 use cpal::{Device, Stream};
+use std::sync::{Arc, Mutex};
 use tracing::error;
 
 use super::{AudioData, AudioError};
@@ -17,16 +17,17 @@ pub fn create_playback_stream(
     start_frame: Option<usize>,
     end_frame: Option<usize>,
 ) -> Result<Stream, AudioError> {
-    let config = device.default_output_config()
+    let config = device
+        .default_output_config()
         .map_err(|e| AudioError::DeviceConfig(e.to_string()))?;
 
     let output_sample_rate = config.sample_rate().0;
     let channels = config.channels() as usize;
-    
+
     // Initialize sample index to start_frame (or 0)
     let start_idx = start_frame.unwrap_or(0) as f64;
     let sample_index = Arc::new(Mutex::new(start_idx));
-    
+
     // Calculate end frame (or use full length)
     let max_frames = audio_data.samples.len() / audio_data.channels as usize;
     let end_idx = end_frame.unwrap_or(max_frames);
@@ -45,7 +46,15 @@ pub fn create_playback_stream(
                 &config.into(),
                 move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
                     let vol = *volume.lock().unwrap();
-                    write_audio_f32(data, &audio_data, &sample_index, vol, channels, rate_ratio, *end_frame);
+                    write_audio_f32(
+                        data,
+                        &audio_data,
+                        &sample_index,
+                        vol,
+                        channels,
+                        rate_ratio,
+                        *end_frame,
+                    );
                 },
                 |err| error!("Stream error: {}", err),
                 None,
@@ -60,7 +69,15 @@ pub fn create_playback_stream(
                 &config.into(),
                 move |data: &mut [i16], _: &cpal::OutputCallbackInfo| {
                     let vol = *volume.lock().unwrap();
-                    write_audio_i16(data, &audio_data, &sample_index, vol, channels, rate_ratio, *end_frame);
+                    write_audio_i16(
+                        data,
+                        &audio_data,
+                        &sample_index,
+                        vol,
+                        channels,
+                        rate_ratio,
+                        *end_frame,
+                    );
                 },
                 |err| error!("Stream error: {}", err),
                 None,
@@ -75,7 +92,15 @@ pub fn create_playback_stream(
                 &config.into(),
                 move |data: &mut [u16], _: &cpal::OutputCallbackInfo| {
                     let vol = *volume.lock().unwrap();
-                    write_audio_u16(data, &audio_data, &sample_index, vol, channels, rate_ratio, *end_frame);
+                    write_audio_u16(
+                        data,
+                        &audio_data,
+                        &sample_index,
+                        vol,
+                        channels,
+                        rate_ratio,
+                        *end_frame,
+                    );
                 },
                 |err| error!("Stream error: {}", err),
                 None,
@@ -85,7 +110,8 @@ pub fn create_playback_stream(
     }
     .map_err(|e| AudioError::StreamBuild(e.to_string()))?;
 
-    stream.play()
+    stream
+        .play()
         .map_err(|e| AudioError::StreamStart(e.to_string()))?;
 
     Ok(stream)
@@ -104,7 +130,7 @@ fn write_audio_f32(
     let mut index = sample_index.lock().unwrap();
     let input_channels = audio_data.channels as usize;
     let max_frame = end_frame.min(audio_data.samples.len() / input_channels) as f64;
-    
+
     // Apply square root volume curve with base attenuation
     // Base multiplier of 0.2 for safe default volume (20% of full amplitude)
     let scaled_volume = volume.sqrt() * 0.2;
@@ -156,7 +182,7 @@ fn write_audio_i16(
     let mut index = sample_index.lock().unwrap();
     let input_channels = audio_data.channels as usize;
     let max_frame = end_frame.min(audio_data.samples.len() / input_channels) as f64;
-    
+
     // Apply square root volume curve with base attenuation
     // Base multiplier of 0.2 for safe default volume (20% of full amplitude)
     let scaled_volume = volume.sqrt() * 0.2;
@@ -208,7 +234,7 @@ fn write_audio_u16(
     let mut index = sample_index.lock().unwrap();
     let input_channels = audio_data.channels as usize;
     let max_frame = end_frame.min(audio_data.samples.len() / input_channels) as f64;
-    
+
     // Apply square root volume curve with base attenuation
     // Base multiplier of 0.2 for safe default volume (20% of full amplitude)
     let scaled_volume = volume.sqrt() * 0.2;

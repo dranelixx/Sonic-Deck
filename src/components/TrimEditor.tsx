@@ -13,19 +13,23 @@ interface WaveformData {
   duration_ms: number;
 }
 
-export default function TrimEditor({ sound, onClose, onSave }: TrimEditorProps) {
+export default function TrimEditor({
+  sound,
+  onClose,
+  onSave,
+}: TrimEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   const [waveformData, setWaveformData] = useState<WaveformData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Trim region state (in milliseconds)
   const [trimStart, setTrimStart] = useState<number>(sound.trim_start_ms || 0);
   const [trimEnd, setTrimEnd] = useState<number | null>(sound.trim_end_ms);
-  
+
   // Drag state
-  const [isDragging, setIsDragging] = useState<'start' | 'end' | null>(null);
+  const [isDragging, setIsDragging] = useState<"start" | "end" | null>(null);
 
   // Load waveform data
   useEffect(() => {
@@ -52,7 +56,8 @@ export default function TrimEditor({ sound, onClose, onSave }: TrimEditorProps) 
   useEffect(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
-    if (!canvas || !container || !waveformData || !waveformData.peaks.length) return;
+    if (!canvas || !container || !waveformData || !waveformData.peaks.length)
+      return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -60,11 +65,11 @@ export default function TrimEditor({ sound, onClose, onSave }: TrimEditorProps) 
     // Get actual container dimensions
     const rect = container.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
-    
+
     // Set canvas size with device pixel ratio for sharp rendering
     canvas.width = rect.width * dpr;
     canvas.height = 120 * dpr;
-    
+
     // Scale context to match device pixel ratio
     ctx.scale(dpr, dpr);
 
@@ -95,55 +100,55 @@ export default function TrimEditor({ sound, onClose, onSave }: TrimEditorProps) 
 
       ctx.fillStyle = color;
       const actualBarWidth = Math.max(1, barWidth - 0.5);
-      ctx.fillRect(
-        x,
-        midY - barHeight,
-        actualBarWidth,
-        barHeight * 2
-      );
+      ctx.fillRect(x, midY - barHeight, actualBarWidth, barHeight * 2);
     }
 
     // Draw trim region borders
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 3;
-    
+
     // Start line
     ctx.beginPath();
     ctx.moveTo(startX, 0);
     ctx.lineTo(startX, height);
     ctx.stroke();
-    
+
     // End line
     ctx.beginPath();
     ctx.moveTo(endX, 0);
     ctx.lineTo(endX, height);
     ctx.stroke();
-
   }, [waveformData, trimStart, trimEnd]);
 
   // Handle mouse down on trim handles
-  const handleMouseDown = useCallback((e: React.MouseEvent, handle: 'start' | 'end') => {
-    e.preventDefault();
-    setIsDragging(handle);
-  }, []);
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent, handle: "start" | "end") => {
+      e.preventDefault();
+      setIsDragging(handle);
+    },
+    []
+  );
 
   // Handle mouse move for dragging
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDragging || !containerRef.current || !waveformData) return;
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isDragging || !containerRef.current || !waveformData) return;
 
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const percentage = Math.max(0, Math.min(1, x / rect.width));
-    const ms = Math.round(percentage * waveformData.duration_ms);
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const percentage = Math.max(0, Math.min(1, x / rect.width));
+      const ms = Math.round(percentage * waveformData.duration_ms);
 
-    if (isDragging === 'start') {
-      const maxStart = (trimEnd || waveformData.duration_ms) - 100; // Min 100ms region
-      setTrimStart(Math.min(ms, maxStart));
-    } else if (isDragging === 'end') {
-      const minEnd = trimStart + 100; // Min 100ms region
-      setTrimEnd(Math.max(ms, minEnd));
-    }
-  }, [isDragging, waveformData, trimStart, trimEnd]);
+      if (isDragging === "start") {
+        const maxStart = (trimEnd || waveformData.duration_ms) - 100; // Min 100ms region
+        setTrimStart(Math.min(ms, maxStart));
+      } else if (isDragging === "end") {
+        const minEnd = trimStart + 100; // Min 100ms region
+        setTrimEnd(Math.max(ms, minEnd));
+      }
+    },
+    [isDragging, waveformData, trimStart, trimEnd]
+  );
 
   // Handle mouse up
   const handleMouseUp = useCallback(() => {
@@ -153,11 +158,11 @@ export default function TrimEditor({ sound, onClose, onSave }: TrimEditorProps) 
   // Attach/detach global mouse listeners
   useEffect(() => {
     if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
       return () => {
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener("mousemove", handleMouseMove);
+        window.removeEventListener("mouseup", handleMouseUp);
       };
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
@@ -176,7 +181,7 @@ export default function TrimEditor({ sound, onClose, onSave }: TrimEditorProps) 
     try {
       // Convert 0 to null for trim_start (0 means no trim at start)
       const finalTrimStart = trimStart === 0 ? null : trimStart;
-      
+
       await invoke("update_sound", {
         soundId: sound.id,
         name: sound.name,
@@ -187,7 +192,7 @@ export default function TrimEditor({ sound, onClose, onSave }: TrimEditorProps) 
         trimStartMs: finalTrimStart,
         trimEndMs: trimEnd,
       });
-      
+
       onSave(finalTrimStart, trimEnd);
       onClose();
     } catch (error) {
@@ -229,27 +234,27 @@ export default function TrimEditor({ sound, onClose, onSave }: TrimEditorProps) 
         </div>
 
         {/* Waveform Editor */}
-        <div 
+        <div
           ref={containerRef}
           className="relative bg-discord-darkest rounded-lg p-4 mb-6"
-          style={{ cursor: isDragging ? 'col-resize' : 'default' }}
+          style={{ cursor: isDragging ? "col-resize" : "default" }}
         >
           <canvas
             ref={canvasRef}
             className="w-full rounded"
             style={{ height: "120px" }}
           />
-          
+
           {/* Trim handles */}
           <div
             className="absolute top-0 bottom-0 w-2 bg-white/20 hover:bg-white/40 cursor-col-resize"
             style={{ left: `${(trimStart / duration) * 100}%` }}
-            onMouseDown={(e) => handleMouseDown(e, 'start')}
+            onMouseDown={(e) => handleMouseDown(e, "start")}
           />
           <div
             className="absolute top-0 bottom-0 w-2 bg-white/20 hover:bg-white/40 cursor-col-resize"
             style={{ left: `${((trimEnd || duration) / duration) * 100}%` }}
-            onMouseDown={(e) => handleMouseDown(e, 'end')}
+            onMouseDown={(e) => handleMouseDown(e, "end")}
           />
         </div>
 
@@ -257,15 +262,21 @@ export default function TrimEditor({ sound, onClose, onSave }: TrimEditorProps) 
         <div className="grid grid-cols-3 gap-4 mb-6 text-sm">
           <div className="bg-discord-dark rounded-lg p-3">
             <div className="text-discord-text-muted mb-1">Start Time</div>
-            <div className="text-discord-text font-mono text-lg">{formatTime(trimStart)}</div>
+            <div className="text-discord-text font-mono text-lg">
+              {formatTime(trimStart)}
+            </div>
           </div>
           <div className="bg-discord-dark rounded-lg p-3">
             <div className="text-discord-text-muted mb-1">End Time</div>
-            <div className="text-discord-text font-mono text-lg">{formatTime(trimEnd || duration)}</div>
+            <div className="text-discord-text font-mono text-lg">
+              {formatTime(trimEnd || duration)}
+            </div>
           </div>
           <div className="bg-discord-dark rounded-lg p-3">
             <div className="text-discord-text-muted mb-1">Trimmed Duration</div>
-            <div className="text-discord-text font-mono text-lg">{formatTime(trimmedDuration)}</div>
+            <div className="text-discord-text font-mono text-lg">
+              {formatTime(trimmedDuration)}
+            </div>
           </div>
         </div>
 

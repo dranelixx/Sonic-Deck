@@ -2,15 +2,15 @@
 //!
 //! LRU memory cache for decoded audio data to avoid redundant decoding.
 
+use std::collections::HashMap;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
-use std::collections::HashMap;
 use std::time::SystemTime;
 
 use lru::LruCache;
 
-use super::{AudioData, AudioError};
 use super::decode::decode_audio_file;
+use super::{AudioData, AudioError};
 
 /// Estimated bytes per sample (f32 = 4 bytes)
 const BYTES_PER_SAMPLE: usize = 4;
@@ -66,9 +66,7 @@ impl AudioCache {
 
     /// Get file modification time
     fn get_file_modified(file_path: &str) -> Option<SystemTime> {
-        std::fs::metadata(file_path)
-            .and_then(|m| m.modified())
-            .ok()
+        std::fs::metadata(file_path).and_then(|m| m.modified()).ok()
     }
 
     /// Check if cached entry is still valid (file hasn't changed)

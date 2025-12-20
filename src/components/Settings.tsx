@@ -23,12 +23,12 @@ interface SettingsProps {
   saveSettings: (settings: AppSettings) => Promise<void>;
 }
 
-export default function Settings({ 
-  devices, 
-  settings: initialSettings, 
-  refreshDevices, 
+export default function Settings({
+  devices,
+  settings: initialSettings,
+  refreshDevices,
   reloadSettings,
-  saveSettings: saveSettingsToApp 
+  saveSettings: saveSettingsToApp,
 }: SettingsProps) {
   const [settings, setSettings] = useState<AppSettings>({
     monitor_device_id: null,
@@ -65,7 +65,7 @@ export default function Settings({
       }
     };
     autoRefresh();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Update local state when props change
   useEffect(() => {
@@ -131,9 +131,7 @@ export default function Settings({
     <div className="w-full h-full bg-discord-darkest flex flex-col">
       {/* Header */}
       <div className="bg-discord-darker px-6 py-4 border-b border-discord-dark">
-        <h1 className="text-2xl font-bold text-discord-primary">
-          ⚙️ Settings
-        </h1>
+        <h1 className="text-2xl font-bold text-discord-primary">⚙️ Settings</h1>
         <p className="text-sm text-discord-text-muted mt-1">
           Configure your default audio routing and preferences
         </p>
@@ -142,14 +140,15 @@ export default function Settings({
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-6">
         <div className="max-w-4xl mx-auto space-y-6">
-          
           {/* Status Banner */}
           {status && (
-            <div className={`rounded-lg p-4 border ${
-              status.includes("Error") 
-                ? "bg-red-900/20 border-discord-danger" 
-                : "bg-green-900/20 border-discord-success"
-            }`}>
+            <div
+              className={`rounded-lg p-4 border ${
+                status.includes("Error")
+                  ? "bg-red-900/20 border-discord-danger"
+                  : "bg-green-900/20 border-discord-success"
+              }`}
+            >
               <div className="flex items-center justify-between">
                 <span className="text-discord-text font-medium">{status}</span>
               </div>
@@ -185,10 +184,7 @@ export default function Settings({
                 <select
                   value={settings.monitor_device_id || ""}
                   onChange={(e) =>
-                    updateSetting(
-                      "monitor_device_id",
-                      e.target.value || null
-                    )
+                    updateSetting("monitor_device_id", e.target.value || null)
                   }
                   className="w-full bg-discord-darker border border-discord-dark rounded px-3 py-2 
                            text-discord-text focus:outline-none focus:ring-2 focus:ring-discord-primary"
@@ -200,16 +196,18 @@ export default function Settings({
                     </option>
                   ))}
                 </select>
-                {settings.monitor_device_id && !isDeviceAvailable(settings.monitor_device_id) && (
-                  <p className="text-xs text-discord-danger mt-1">
-                    ⚠️ Device not available
-                  </p>
-                )}
-                {settings.monitor_device_id && isDeviceAvailable(settings.monitor_device_id) && (
-                  <p className="text-xs text-discord-success mt-1">
-                    ✓ Device online
-                  </p>
-                )}
+                {settings.monitor_device_id &&
+                  !isDeviceAvailable(settings.monitor_device_id) && (
+                    <p className="text-xs text-discord-danger mt-1">
+                      ⚠️ Device not available
+                    </p>
+                  )}
+                {settings.monitor_device_id &&
+                  isDeviceAvailable(settings.monitor_device_id) && (
+                    <p className="text-xs text-discord-success mt-1">
+                      ✓ Device online
+                    </p>
+                  )}
               </div>
 
               {/* Broadcast Output Device */}
@@ -223,10 +221,7 @@ export default function Settings({
                 <select
                   value={settings.broadcast_device_id || ""}
                   onChange={(e) =>
-                    updateSetting(
-                      "broadcast_device_id",
-                      e.target.value || null
-                    )
+                    updateSetting("broadcast_device_id", e.target.value || null)
                   }
                   className="w-full bg-discord-darker border border-discord-dark rounded px-3 py-2 
                            text-discord-text focus:outline-none focus:ring-2 focus:ring-discord-primary"
@@ -238,30 +233,32 @@ export default function Settings({
                     </option>
                   ))}
                 </select>
-                {settings.broadcast_device_id && !isDeviceAvailable(settings.broadcast_device_id) && (
-                  <p className="text-xs text-discord-danger mt-1">
-                    ⚠️ Device not available
-                  </p>
-                )}
-                {settings.broadcast_device_id && isDeviceAvailable(settings.broadcast_device_id) && (
-                  <p className="text-xs text-discord-success mt-1">
-                    ✓ Device online
-                  </p>
-                )}
+                {settings.broadcast_device_id &&
+                  !isDeviceAvailable(settings.broadcast_device_id) && (
+                    <p className="text-xs text-discord-danger mt-1">
+                      ⚠️ Device not available
+                    </p>
+                  )}
+                {settings.broadcast_device_id &&
+                  isDeviceAvailable(settings.broadcast_device_id) && (
+                    <p className="text-xs text-discord-success mt-1">
+                      ✓ Device online
+                    </p>
+                  )}
               </div>
             </div>
 
             {/* Warning if both devices are the same */}
-            {settings.monitor_device_id && 
-             settings.broadcast_device_id && 
-             settings.monitor_device_id === settings.broadcast_device_id && (
-              <div className="bg-discord-warning/20 border border-discord-warning rounded p-3">
-                <p className="text-sm text-discord-warning">
-                  ⚠️ Warning: Both outputs are set to the same device. For dual-output routing, 
-                  select different devices.
-                </p>
-              </div>
-            )}
+            {settings.monitor_device_id &&
+              settings.broadcast_device_id &&
+              settings.monitor_device_id === settings.broadcast_device_id && (
+                <div className="bg-discord-warning/20 border border-discord-warning rounded p-3">
+                  <p className="text-sm text-discord-warning">
+                    ⚠️ Warning: Both outputs are set to the same device. For
+                    dual-output routing, select different devices.
+                  </p>
+                </div>
+              )}
           </div>
 
           {/* Playback Preferences */}
@@ -273,9 +270,20 @@ export default function Settings({
             {/* Default Volume */}
             <div>
               <label className="block text-sm font-medium text-discord-text mb-2">
-                Default Volume: <span className={settings.default_volume >= 0.75 ? "text-red-500 font-bold" : ""}>{Math.round(settings.default_volume * 100)}%</span>
+                Default Volume:{" "}
+                <span
+                  className={
+                    settings.default_volume >= 0.75
+                      ? "text-red-500 font-bold"
+                      : ""
+                  }
+                >
+                  {Math.round(settings.default_volume * 100)}%
+                </span>
                 {settings.default_volume >= 0.75 && (
-                  <span className="ml-2 text-xs text-red-400">⚠️ High volume</span>
+                  <span className="ml-2 text-xs text-red-400">
+                    ⚠️ High volume
+                  </span>
                 )}
               </label>
               <div className="relative">
@@ -290,7 +298,8 @@ export default function Settings({
                   }
                   className="w-full"
                   style={{
-                    accentColor: settings.default_volume >= 0.75 ? '#ef4444' : '#5865f2'
+                    accentColor:
+                      settings.default_volume >= 0.75 ? "#ef4444" : "#5865f2",
                   }}
                 />
                 {settings.default_volume >= 0.75 && (
@@ -298,7 +307,8 @@ export default function Settings({
                 )}
               </div>
               <p className="text-xs text-discord-text-muted mt-1">
-                This volume will be used by default for new sound playbacks. Recommended: 50% or lower for hearing protection.
+                This volume will be used by default for new sound playbacks.
+                Recommended: 50% or lower for hearing protection.
               </p>
             </div>
 
@@ -310,17 +320,26 @@ export default function Settings({
                   checked={settings.volume_multiplier > 1.0}
                   onChange={(e) => {
                     // Toggle: 1.0 = disabled, 2.0 = enabled with 2x boost
-                    updateSetting("volume_multiplier", e.target.checked ? 2.0 : 1.0);
+                    updateSetting(
+                      "volume_multiplier",
+                      e.target.checked ? 2.0 : 1.0
+                    );
                   }}
                   className="rounded border-discord-dark bg-discord-darker
                            text-discord-primary focus:ring-discord-primary cursor-pointer"
                 />
                 <span>Global Volume Boost</span>
                 {settings.volume_multiplier > 1.0 && (
-                  <span className="ml-1 font-bold">(+{Math.round((Math.min(3.0, settings.volume_multiplier) - 1.0) * 100)}%)</span>
+                  <span className="ml-1 font-bold">
+                    (+
+                    {Math.round(
+                      (Math.min(3.0, settings.volume_multiplier) - 1.0) * 100
+                    )}
+                    %)
+                  </span>
                 )}
               </div>
-              
+
               {settings.volume_multiplier > 1.0 && (
                 <>
                   <div className="relative mt-2">
@@ -331,23 +350,28 @@ export default function Settings({
                       step="0.1"
                       value={Math.min(3.0, settings.volume_multiplier)}
                       onChange={(e) =>
-                        updateSetting("volume_multiplier", parseFloat(e.target.value))
+                        updateSetting(
+                          "volume_multiplier",
+                          parseFloat(e.target.value)
+                        )
                       }
                       className="w-full"
                       style={{
-                        accentColor: '#5865f2'
+                        accentColor: "#5865f2",
                       }}
                     />
                   </div>
                   <p className="text-xs text-discord-text-muted mt-1">
-                    Amplifies all sounds beyond their normal volume. Range: +10% to +200%. Use if sounds are too quiet.
+                    Amplifies all sounds beyond their normal volume. Range: +10%
+                    to +200%. Use if sounds are too quiet.
                   </p>
                 </>
               )}
-              
+
               {settings.volume_multiplier <= 1.0 && (
                 <p className="text-xs text-discord-text-muted mt-1">
-                  Sounds play at normal Windows Media Player volume (no boost applied).
+                  Sounds play at normal Windows Media Player volume (no boost
+                  applied).
                 </p>
               )}
             </div>
@@ -402,13 +426,18 @@ export default function Settings({
             </h3>
             <div className="space-y-2 text-sm text-discord-text-muted">
               <p>
-                • <strong>Monitor Output:</strong> Where you hear the sounds (your headphones/speakers)
+                • <strong>Monitor Output:</strong> Where you hear the sounds
+                (your headphones/speakers)
               </p>
               <p>
-                • <strong>Broadcast Output:</strong> Where your audience hears the sounds (virtual audio cable, OBS, etc.)
+                • <strong>Broadcast Output:</strong> Where your audience hears
+                the sounds (virtual audio cable, OBS, etc.)
               </p>
               <p>
-                • Settings are automatically saved to: <code className="text-xs bg-discord-darker px-2 py-0.5 rounded">{settingsPath}</code>
+                • Settings are automatically saved to:{" "}
+                <code className="text-xs bg-discord-darker px-2 py-0.5 rounded">
+                  {settingsPath}
+                </code>
               </p>
             </div>
           </div>
@@ -429,7 +458,8 @@ export default function Settings({
 
             <div className="space-y-3 text-sm">
               <p className="text-discord-text-muted">
-                High-performance desktop soundboard built with Tauri v2, Rust, React, and TypeScript.
+                High-performance desktop soundboard built with Tauri v2, Rust,
+                React, and TypeScript.
               </p>
 
               {/* Copyright */}
@@ -446,8 +476,8 @@ export default function Settings({
                     className="text-discord-primary hover:underline"
                   >
                     MIT License
-                  </a>
-                  {" "}• Open-Source Software
+                  </a>{" "}
+                  • Open-Source Software
                 </p>
               </div>
 
@@ -469,7 +499,9 @@ export default function Settings({
                   <p>
                     💬 Discord:{" "}
                     <span className="text-discord-text">dranelixx</span>
-                    <span className="text-discord-text-muted ml-1">(ID: 624679678573150219)</span>
+                    <span className="text-discord-text-muted ml-1">
+                      (ID: 624679678573150219)
+                    </span>
                   </p>
                   <p>
                     🐛 Report Bugs:{" "}
@@ -502,8 +534,9 @@ export default function Settings({
                   🎨 Artist Wanted!
                 </h4>
                 <p className="text-xs text-discord-text-muted">
-                  We're looking for an artist to create visual assets (icons, UI design, branding, etc.) for SonicDeck.
-                  This is an open-source community project - unpaid, but with credit!
+                  We're looking for an artist to create visual assets (icons, UI
+                  design, branding, etc.) for SonicDeck. This is an open-source
+                  community project - unpaid, but with credit!
                 </p>
                 <p className="text-xs text-discord-text-muted mt-2">
                   Interested? Contact via email or Discord above.
@@ -533,7 +566,6 @@ export default function Settings({
               Reset
             </button>
           </div>
-
         </div>
       </div>
     </div>
