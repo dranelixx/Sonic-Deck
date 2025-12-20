@@ -32,6 +32,8 @@ export interface Sound {
   icon: string | null;
   volume: number | null;
   is_favorite: boolean;
+  trim_start_ms: number | null;
+  trim_end_ms: number | null;
 }
 
 export interface Category {

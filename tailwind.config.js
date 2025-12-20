@@ -18,6 +18,20 @@ export default {
         'discord-warning': '#F0B232',
         'discord-text': '#DBDEE1',
         'discord-text-muted': '#B5BAC1',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0', transform: 'translateY(-4px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        toastEnter: {
+          '0%': { opacity: '0', transform: 'translate(-50%, 96px)' },
+          '100%': { opacity: '1', transform: 'translate(-50%, 0)' },
+        }
+      },
+      animation: {
+        fadeIn: 'fadeIn 0.3s ease-out',
+        toastEnter: 'toastEnter 0.3s ease-out',
       }
     },
   },

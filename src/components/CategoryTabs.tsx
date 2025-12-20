@@ -122,7 +122,7 @@ export default function CategoryTabs({
   }, [openContextMenuId, onContextMenuChange]);
 
   return (
-    <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-discord-dark">
+    <div className="flex items-center gap-2 overflow-x-auto">
       {sortedCategories.map((category) => (
         <div key={category.id} className="relative">
           {editingCategoryId === category.id ? (

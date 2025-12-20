@@ -98,6 +98,12 @@ pub struct Sound {
     /// Whether this sound is marked as favorite
     #[serde(default)]
     pub is_favorite: bool,
+    /// Optional trim start time in milliseconds
+    #[serde(default)]
+    pub trim_start_ms: Option<u64>,
+    /// Optional trim end time in milliseconds
+    #[serde(default)]
+    pub trim_end_ms: Option<u64>,
 }
 
 /// A category to organize sounds
@@ -203,6 +209,8 @@ pub fn add_sound(
         icon,
         volume: volume.map(|v| v.clamp(0.0, 1.0)),
         is_favorite: false,
+        trim_start_ms: None,
+        trim_end_ms: None,
     };
     library.sounds.push(sound.clone());
     sound
@@ -219,6 +227,8 @@ pub fn update_sound(
     icon: Option<Option<String>>,
     volume: Option<Option<f32>>,
     is_favorite: Option<bool>,
+    trim_start_ms: Option<Option<u64>>,
+    trim_end_ms: Option<Option<u64>>,
 ) -> Result<Sound, String> {
     let sound = library
         .sounds
@@ -243,6 +253,12 @@ pub fn update_sound(
     }
     if let Some(is_favorite) = is_favorite {
         sound.is_favorite = is_favorite;
+    }
+    if let Some(trim_start_ms) = trim_start_ms {
+        sound.trim_start_ms = trim_start_ms;
+    }
+    if let Some(trim_end_ms) = trim_end_ms {
+        sound.trim_end_ms = trim_end_ms;
     }
 
     Ok(sound.clone())

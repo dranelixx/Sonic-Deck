@@ -1,17 +1,21 @@
 //! Audio playback lifecycle management
 //!
-//! Manages active playbacks with thread-safe stop signaling.
+//! Manages active playbacks with thread-safe stop signaling and audio caching.
 
 use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 
-/// Manages audio playback state and active streams
+use super::cache::{AudioCache, CacheStats};
+
+/// Manages audio playback state, active streams, and audio cache
 pub struct AudioManager {
     /// Stop signals for active playbacks (send () to stop)
     stop_senders: Arc<Mutex<HashMap<String, Sender<()>>>>,
     /// Counter for generating unique playback IDs
     playback_counter: Arc<Mutex<u64>>,
+    /// LRU cache for decoded audio data
+    cache: Arc<Mutex<AudioCache>>,
 }
 
 impl AudioManager {
@@ -19,7 +23,32 @@ impl AudioManager {
         Self {
             stop_senders: Arc::new(Mutex::new(HashMap::new())),
             playback_counter: Arc::new(Mutex::new(0)),
+            cache: Arc::new(Mutex::new(AudioCache::default())),
         }
+    }
+
+    /// Create with custom cache size (in MB)
+    pub fn with_cache_size(max_memory_mb: usize) -> Self {
+        Self {
+            stop_senders: Arc::new(Mutex::new(HashMap::new())),
+            playback_counter: Arc::new(Mutex::new(0)),
+            cache: Arc::new(Mutex::new(AudioCache::new(max_memory_mb))),
+        }
+    }
+
+    /// Get a clone of the cache Arc for thread-safe access
+    pub fn get_cache(&self) -> Arc<Mutex<AudioCache>> {
+        self.cache.clone()
+    }
+
+    /// Clear the audio cache
+    pub fn clear_cache(&self) {
+        self.cache.lock().unwrap().clear();
+    }
+
+    /// Get cache statistics
+    pub fn cache_stats(&self) -> CacheStats {
+        self.cache.lock().unwrap().stats()
     }
 
     /// Generate a unique playback ID

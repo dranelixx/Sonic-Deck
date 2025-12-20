@@ -18,6 +18,7 @@ thiserror = "1.0"
 
 # Audio dependencies
 cpal = "0.15"
+lru = "0.12"
 # Symphonia for audio decoding (MP3, WAV, OGG support)
 symphonia = { version = "0.5", features = ["mp3", "isomp4", "vorbis"] }
 tauri-plugin-dialog = "2.0"

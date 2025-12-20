@@ -8,6 +8,7 @@ interface SoundButtonProps {
   onEdit: (sound: Sound) => void;
   onDelete: (sound: Sound) => void;
   onToggleFavorite: (sound: Sound) => void;
+  onTrim: (sound: Sound) => void;
   showMenu: boolean;
   onMenuChange: (show: boolean) => void;
 }
@@ -19,6 +20,7 @@ export default function SoundButton({
   onEdit,
   onDelete,
   onToggleFavorite,
+  onTrim,
   showMenu,
   onMenuChange,
 }: SoundButtonProps) {
@@ -60,6 +62,12 @@ export default function SoundButton({
     onToggleFavorite(sound);
   };
 
+  const handleTrim = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onMenuChange(false);
+    onTrim(sound);
+  };
+
   return (
     <div className="relative">
       <button
@@ -69,21 +77,22 @@ export default function SoundButton({
                    flex flex-col items-center justify-center gap-1 p-2
                    ${isPlaying
                      ? "bg-discord-success scale-95 shadow-lg shadow-discord-success/30"
-                     : "bg-discord-dark hover:bg-discord-darker hover:scale-105"
+                     : "bg-discord-dark hover:bg-discord-darker hover:scale-[1.02]"
                    }
                    text-discord-text border border-discord-darker
                    focus:outline-none focus:ring-2 focus:ring-discord-primary`}
         title={`Play: ${sound.name}\nPath: ${sound.file_path}\nRight-click for options`}
       >
         {/* Icon or default */}
-        <span className="text-2xl">
+        <span className="text-xl">
           {sound.icon || (isPlaying ? "🔊" : "🔈")}
         </span>
 
         {/* Name - truncated */}
-        <span className="text-sm truncate w-full px-2 text-center">
+        <span className="text-xs truncate w-full px-1 text-center">
           {sound.name}
         </span>
+
 
         {/* Favorite star */}
         {sound.is_favorite && (
@@ -114,7 +123,7 @@ export default function SoundButton({
             className="w-full px-4 py-2 text-left text-sm text-discord-text
                      hover:bg-discord-primary hover:text-white transition-colors"
           >
-            {sound.is_favorite ? "⭐ Remove Favorite" : "☆ Add to Favorites"}
+            {sound.is_favorite ? "Remove Favorite" : "Add to Favorites"}
           </button>
           <button
             onClick={handleEdit}
@@ -122,6 +131,13 @@ export default function SoundButton({
                      hover:bg-discord-primary hover:text-white transition-colors"
           >
             Edit Sound
+          </button>
+          <button
+            onClick={handleTrim}
+            className="w-full px-4 py-2 text-left text-sm text-discord-text
+                     hover:bg-discord-primary hover:text-white transition-colors"
+          >
+            Trim Audio
           </button>
           <button
             onClick={handleDelete}

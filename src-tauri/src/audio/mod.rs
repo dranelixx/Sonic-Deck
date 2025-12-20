@@ -1,18 +1,21 @@
 //! Audio module for SonicDeck
 //!
-//! Provides dual-output audio routing with cpal-based playback.
+//! Provides dual-output audio routing with cpal-based playback and caching.
 
+mod cache;
 mod decode;
 mod device;
 mod error;
 mod manager;
 mod playback;
+mod waveform;
 
-pub use decode::decode_audio_file;
+pub use cache::CacheStats;
 pub use device::enumerate_devices;
 pub use error::AudioError;
 pub use manager::AudioManager;
 pub use playback::create_playback_stream;
+pub use waveform::{generate_peaks, WaveformData};
 
 use serde::{Deserialize, Serialize};
 

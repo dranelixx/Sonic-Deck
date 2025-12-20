@@ -14,9 +14,18 @@ use std::time::Duration;
 use cpal::traits::HostTrait;
 use tauri::{Emitter, State};
 
-pub use audio::{AudioDevice, AudioManager, DeviceId};
+pub use audio::{AudioDevice, AudioManager, CacheStats, DeviceId, WaveformData};
 pub use settings::AppSettings;
 pub use sounds::{Sound, SoundId, Category, CategoryId, SoundLibrary};
+
+/// Playback progress event payload
+#[derive(Clone, serde::Serialize)]
+struct PlaybackProgress {
+    playback_id: String,
+    elapsed_ms: u64,
+    total_ms: u64,
+    progress_pct: u8,
+}
 
 // ============================================================================
 // TAURI COMMANDS - Audio
@@ -35,6 +44,8 @@ fn play_dual_output(
     device_id_1: DeviceId,
     device_id_2: DeviceId,
     volume: f32,
+    trim_start_ms: Option<u64>,
+    trim_end_ms: Option<u64>,
     manager: State<'_, AudioManager>,
     app_handle: tauri::AppHandle,
 ) -> Result<String, String> {
@@ -55,12 +66,13 @@ fn play_dual_output(
     // Clone for the thread
     let playback_id_clone = playback_id.clone();
     let manager_inner = manager.get_stop_senders();
+    let cache = manager.get_cache();
 
     // Spawn dedicated playback thread (including decoding to avoid blocking UI)
     thread::spawn(move || {
-        // Decode audio file in background thread
-        let audio_data = match audio::decode_audio_file(&file_path) {
-            Ok(data) => Arc::new(data),
+        // Get audio from cache or decode (cache handles the logic)
+        let audio_data = match cache.lock().unwrap().get_or_decode(&file_path) {
+            Ok(data) => data, // Already Arc<AudioData>
             Err(e) => {
                 eprintln!("Failed to decode audio: {}", e);
                 manager_inner.lock().unwrap().remove(&playback_id_clone);
@@ -101,8 +113,13 @@ fn play_dual_output(
             return;
         };
 
-        // Create streams with shared volume state
-        let stream_1 = match audio::create_playback_stream(device_1, audio_data.clone(), volume_state.clone()) {
+        // Calculate trim frames from milliseconds
+        let sample_rate = audio_data.sample_rate;
+        let start_frame = trim_start_ms.map(|ms| ((ms as f64 / 1000.0) * sample_rate as f64) as usize);
+        let end_frame = trim_end_ms.map(|ms| ((ms as f64 / 1000.0) * sample_rate as f64) as usize);
+
+        // Create streams with shared volume state and trim parameters
+        let stream_1 = match audio::create_playback_stream(device_1, audio_data.clone(), volume_state.clone(), start_frame, end_frame) {
             Ok(s) => s,
             Err(e) => {
                 eprintln!("Failed to create stream 1: {}", e);
@@ -111,7 +128,7 @@ fn play_dual_output(
             }
         };
 
-        let stream_2 = match audio::create_playback_stream(device_2, audio_data.clone(), volume_state.clone()) {
+        let stream_2 = match audio::create_playback_stream(device_2, audio_data.clone(), volume_state.clone(), start_frame, end_frame) {
             Ok(s) => s,
             Err(e) => {
                 eprintln!("Failed to create stream 2: {}", e);
@@ -120,13 +137,17 @@ fn play_dual_output(
             }
         };
 
-        // Calculate duration
-        let duration_secs = audio_data.samples.len() as f64
-            / (audio_data.sample_rate as f64 * audio_data.channels as f64);
+        // Calculate duration (with trim)
+        let total_frames = audio_data.samples.len() / audio_data.channels as usize;
+        let actual_start = start_frame.unwrap_or(0);
+        let actual_end = end_frame.unwrap_or(total_frames);
+        let trimmed_frames = actual_end.saturating_sub(actual_start);
+        
+        let duration_secs = trimmed_frames as f64 / audio_data.sample_rate as f64;
         let total_sleep_ms = (duration_secs * 1000.0) as u64;
 
-        // Wait for completion or stop signal
-        let check_interval = Duration::from_millis(100);
+        // Wait for completion or stop signal, emitting progress events
+        let check_interval = Duration::from_millis(50); // 50ms for smoother progress updates
         let mut elapsed_ms = 0u64;
 
         while elapsed_ms < total_sleep_ms {
@@ -136,7 +157,16 @@ fn play_dual_output(
             }
 
             thread::sleep(check_interval);
-            elapsed_ms += 100;
+            elapsed_ms += 50;
+
+            // Emit progress event
+            let progress_pct = ((elapsed_ms as f64 / total_sleep_ms as f64) * 100.0).min(100.0) as u8;
+            let _ = app_handle.emit("playback-progress", PlaybackProgress {
+                playback_id: playback_id_clone.clone(),
+                elapsed_ms,
+                total_ms: total_sleep_ms,
+                progress_pct,
+            });
         }
 
         // Clean up
@@ -169,6 +199,39 @@ fn stop_playback(
     } else {
         Err(format!("Playback not found: {}", playback_id))
     }
+}
+
+/// Clear the audio cache (forces re-decoding on next play)
+#[tauri::command]
+fn clear_audio_cache(manager: State<'_, AudioManager>) -> Result<(), String> {
+    manager.clear_cache();
+    Ok(())
+}
+
+/// Get audio cache statistics
+#[tauri::command]
+fn get_cache_stats(manager: State<'_, AudioManager>) -> Result<CacheStats, String> {
+    Ok(manager.cache_stats())
+}
+
+/// Get waveform data for an audio file
+#[tauri::command]
+fn get_waveform(
+    file_path: String,
+    num_peaks: usize,
+    manager: State<'_, AudioManager>,
+) -> Result<WaveformData, String> {
+    // Use cache to get or decode the audio
+    let audio_data = manager
+        .get_cache()
+        .lock()
+        .unwrap()
+        .get_or_decode(&file_path)
+        .map_err(|e| e.to_string())?;
+
+    // Generate waveform peaks
+    let waveform = audio::generate_peaks(&audio_data, num_peaks);
+    Ok(waveform)
 }
 
 // ============================================================================
@@ -232,6 +295,8 @@ fn update_sound(
     category_id: CategoryId,
     icon: Option<String>,
     volume: Option<f32>,
+    trim_start_ms: Option<u64>,
+    trim_end_ms: Option<u64>,
     app_handle: tauri::AppHandle,
 ) -> Result<Sound, String> {
     let mut library = sounds::load(&app_handle)?;
@@ -245,7 +310,10 @@ fn update_sound(
         Some(icon),
         Some(volume),
         None, // Don't change is_favorite here
+        Some(trim_start_ms), // Update trim_start_ms
+        Some(trim_end_ms),   // Update trim_end_ms
     )?;
+    
     sounds::save(&library, &app_handle)?;
     Ok(sound)
 }
@@ -338,6 +406,9 @@ pub fn run() {
             play_dual_output,
             stop_all_audio,
             stop_playback,
+            clear_audio_cache,
+            get_cache_stats,
+            get_waveform,
             load_settings,
             save_settings,
             get_settings_file_path,
