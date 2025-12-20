@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Git‑Arbeitsfluss – Breite Step‑Cards (1–8) + Branching‑Strategie</title>
+  <style>
+    :root{--bg:#0b0f1a;--text:#e6edf3;--muted:#9fb1c7;--panel:#0d1426;--border:#1b2740;--line:#33425f;
+      --main:#4cc9f0;--feat:#a78bfa;--beta:#f59e0b;--rel:#7dd3fc;--tag:#f472b6;--ci:#22c55e;--ok:#10b981}
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,var(--bg),#070a13);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
+    header{padding:18px 44px;border-bottom:1px solid var(--border)}
+    h1{margin:0 0 4px;font-size:36px}
+    .sub{color:var(--muted);font-size:15px}
+
+    main{max-width:2600px;margin:0 auto;padding:14px 36px 36px}
+
+    /* STRATEGY BAR */
+    .strategy{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin:12px 0}
+    .sgrid{display:grid;grid-template-columns:1.2fr 1.3fr 1.3fr 1.2fr;gap:14px}
+    @media (max-width:2000px){.sgrid{grid-template-columns:1fr 1fr}}
+    @media (max-width:1200px){.sgrid{grid-template-columns:1fr}}
+    .scard{background:#0c1326;border:1px solid #1f2b44;border-radius:10px;padding:10px}
+    .scard h3{margin:0 0 6px;font-size:16px}
+    .scard ul{margin:0 0 0 16px}
+    .scard li{margin:2px 0;font-size:13.5px;color:#cfdae6}
+    .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-weight:800;font-size:11px;margin-left:6px}
+    .p-main{background:rgba(76,201,240,.15);color:var(--main)}
+    .p-feat{background:rgba(167,139,250,.15);color:var(--feat)}
+    .p-beta{background:rgba(245,158,11,.15);color:var(--beta)}
+    .p-rel{background:rgba(125,211,252,.15);color:var(--rel)}
+    .p-ci{background:rgba(34,197,94,.15);color:var(--ci)}
+    .p-tag{background:rgba(244,114,182,.15);color:var(--tag)}
+
+    /* STEP CARD */
+    .step{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin:10px 0}
+    .head{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
+    .num{min-width:26px;height:26px;border-radius:6px;background:#14233e;border:1px solid #22324b;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;color:#cfe7ff}
+    .title{font-size:18px;font-weight:800;margin:0}
+
+    .cols{display:grid;grid-template-columns:1.2fr 1.5fr 2fr;gap:14px}
+    @media (max-width:2000px){.cols{grid-template-columns:1fr 1fr 1.6fr}}
+    @media (max-width:1500px){.cols{grid-template-columns:1fr}}
+
+    .cell h4{margin:0 0 4px;font-size:14px;color:#dbe6f4}
+    .cell p{margin:0;font-size:13.5px;color:#cfdae6}
+
+    .cmds{display:grid;grid-template-columns:1fr;gap:6px}
+    .cmd{display:flex;gap:10px;align-items:center;background:#0c1326;border:1px solid #1f2b44;border-radius:10px;padding:6px 10px}
+    .cmd code{font-size:13.5px;color:#c7d2fe}
+    .explain{font-size:13px;color:#cfd7e4;opacity:.95}
+
+    ul{margin:0 0 0 16px;padding:0}
+    li{margin:2px 0;font-size:13.5px;color:#cfdae6}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Git‑Arbeitsfluss & Branching‑Strategie</h1>
+    <div class="sub">Trunk‑Based (main) • PR erforderlich • Merge‑Commit • Releases via Tags • Optional: beta / release</div>
+  </header>
+
+  <main>
+    <!-- BRANCHING STRATEGY OVERVIEW -->
+    <section class="strategy" aria-label="Branching-Strategie">
+      <div class="sgrid">
+        <div class="scard">
+          <h3>Trunk & Pflicht</h3>
+          <ul>
+            <li><b>Trunk:</b> <span class="pill p-main">main</span> (Default)</li>
+            <li><b>PR Pflicht:</b> keine direkten Pushes</li>
+            <li><b>Merge‑Strategie:</b> Merge‑Commit (Standard)</li>
+            <li><b>Commits:</b> feingranular, Conventional Commits</li>
+          </ul>
+        </div>
+        <div class="scard">
+          <h3>Arbeits‑Branches</h3>
+          <ul>
+            <li><span class="pill p-feat">feature/&lt;thema&gt;</span> – neue Features</li>
+            <li><span class="pill p-feat">fix/&lt;thema&gt;</span> – Bugs</li>
+            <li><span class="pill p-feat">chore/&lt;thema&gt;</span> – Build/Doku</li>
+            <li>Namensschema: <code>kebab-case</code></li>
+          </ul>
+        </div>
+        <div class="scard">
+          <h3>Release‑Strategie</h3>
+          <ul>
+            <li><b>Stable:</b> Tags <span class="pill p-tag">vX.Y.Z</span> auf main</li>
+            <li><b>Pre‑Release:</b> <span class="pill p-tag">vX.Y.Z‑beta.N</span> (optional)</li>
+            <li><b>Freeze:</b> <span class="pill p-rel">release/x.y.z</span> nur bei Bedarf</li>
+            <li>Downloads über GitHub Releases (CI‑Artefakte)</li>
+          </ul>
+        </div>
+        <div class="scard">
+          <h3>Qualität & CI</h3>
+          <ul>
+            <li><b>PR‑Checks:</b> <code>cargo clippy -D warnings</code>, <code>yarn tsc --noEmit</code></li>
+            <li><b>Release‑Build:</b> Tauri auf Tag <span class="pill p-tag">v*</span></li>
+            <li><b>Optional:</b> build auf PR, beta‑Builds</li>
+            <li><b>Docs:</b> bei Architektur/Phase anpassen</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEPS 1–8 (unchanged core flow, wide & flat) -->
+    <section class="step">
+      <div class="head"><div class="num">1</div><h2 class="title">main aktualisieren <span class="pill p-main">main</span></h2></div>
+      <div class="cols">
+        <div class="cell"><h4>Was</h4><p>Deinen lokalen main mit origin/main synchronisieren.</p></div>
+        <div class="cell"><h4>Warum</h4><p>Verhindert Konflikte; neue Arbeit startet vom neuesten Stand.</p></div>
+        <div class="cell cmds">
+          <div class="cmd"><code>git fetch --all --prune</code><span class="explain">Remote updaten, verwaiste Refs löschen</span></div>
+          <div class="cmd"><code>git switch main</code><span class="explain">auf main wechseln</span></div>
+          <div class="cmd"><code>git pull --ff-only</code><span class="explain">nur Fast‑Forward, kein lokaler Merge</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="head"><div class="num">2</div><h2 class="title">Feature‑Branch anlegen <span class="pill p-feat">feature/*</span></h2></div>
+      <div class="cols">
+        <div class="cell"><h4>Was</h4><p>Neuen Branch von main für die Änderung erstellen.</p></div>
+        <div class="cell"><h4>Warum</h4><p>Saubere Historie, isolierte Arbeit, leichter PR.</p></div>
+        <div class="cell cmds">
+          <div class="cmd"><code>git checkout -b feature/global-hotkeys</code><span class="explain">Branch erstellen & wechseln</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="head"><div class="num">3</div><h2 class="title">Arbeiten, committen, pushen</h2></div>
+      <div class="cols">
+        <div class="cell"><h4>Was</h4><p>Änderungen in kleinen Schritten committen und hochladen.</p></div>
+        <div class="cell"><h4>Warum</h4><p>Feingranulare Historie; PR kann früh geprüft werden.</p></div>
+        <div class="cell cmds">
+          <div class="cmd"><code>git add -p</code><span class="explain">interaktiv hunks auswählen</span></div>
+          <div class="cmd"><code>git commit -m "feat(hotkeys): add global hotkeys"</code><span class="explain">klare Message (Conventional)</span></div>
+          <div class="cmd"><code>git push -u origin feature/global-hotkeys</code><span class="explain">erster Push: Remote & Tracking setzen</span></div>
+          <div class="cmd"><code>git push</code><span class="explain">weitere Pushes genügen</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="head"><div class="num">4</div><h2 class="title">Pull Request öffnen → main</h2></div>
+      <div class="cols">
+        <div class="cell"><h4>Was</h4><p>PR von feature/* nach main in GitHub öffnen.</p></div>
+        <div class="cell"><h4>Warum</h4><p>Review, Kommentar‑Thread, CI‑Checks – alles an einem Ort.</p></div>
+        <div class="cell cmds">
+          <div class="cmd"><code>Base: main • Compare: feature/global-hotkeys</code><span class="explain">Beschreibung, Screens, Scope</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="head"><div class="num">5</div><h2 class="title">CI‑Checks laufen lassen <span class="pill p-ci">CI</span></h2></div>
+      <div class="cols">
+        <div class="cell"><h4>Was</h4><p>Automatisierte Qualitätssicherung auf PR.</p></div>
+        <div class="cell"><h4>Warum</h4><p>Fehler früh erkennen; konsistente Qualität.</p></div>
+        <div class="cell cmds">
+          <div class="cmd"><code>cargo clippy -D warnings</code><span class="explain">Rust Lint strikt</span></div>
+          <div class="cmd"><code>yarn tsc --noEmit</code><span class="explain">TS Typecheck ohne Build</span></div>
+          <div class="cmd"><code>yarn build</code><span class="explain">optional: Bundling test</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="head"><div class="num">6</div><h2 class="title">Merge‑Commit durchführen</h2></div>
+      <div class="cols">
+        <div class="cell"><h4>Was</h4><p>„Create a merge commit“ auf der PR‑Seite.</p></div>
+        <div class="cell"><h4>Warum</h4><p>Zwischen‑Commits bleiben erhalten; Historie nachvollziehbar.</p></div>
+        <div class="cell cmds">
+          <div class="cmd"><code>(GitHub UI) Merge pull request → Create a merge commit</code><span class="explain">Standard‑Strategie</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="head"><div class="num">7</div><h2 class="title">Release taggen (CI baut Installer) <span class="pill p-tag">vX.Y.Z</span></h2></div>
+      <div class="cols">
+        <div class="cell"><h4>Was</h4><p>Version markieren; GitHub Release mit Assets erzeugen.</p></div>
+        <div class="cell"><h4>Warum</h4><p>Nutzer laden stabilen Installer direkt von der Releases‑Seite.</p></div>
+        <div class="cell cmds">
+          <div class="cmd"><code>git tag v0.6.0 -m "Release v0.6.0"</code><span class="explain">annotierter Tag</span></div>
+          <div class="cmd"><code>git push origin v0.6.0</code><span class="explain">CI triggert Release‑Build</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="step">
+      <div class="head"><div class="num">8</div><h2 class="title">Optional: Beta / Release‑Freeze</h2></div>
+      <div class="cols">
+        <div class="cell"><h4>Was</h4><p>Vorabtests auf <span class="pill p-beta">beta</span> oder Freeze auf <span class="pill p-rel">release/x.y.z</span>.</p></div>
+        <div class="cell"><h4>Warum</h4><p>Größere Releases stabilisieren; 1.0.x Patches ermöglichen.</p></div>
+        <div class="cell cmds">
+          <div class="cmd"><code>Tag v0.6.0-beta.1</code><span class="explain">Prerelease für Tester</span></div>
+          <div class="cmd"><code>git checkout -b release/1.0</code><span class="explain">Freeze‑Branch, nur Bugfixes</span></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

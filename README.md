@@ -1,35 +1,81 @@
-# SonicDeck 🚀
+# SonicDeck 🎵
 
-![SonicDeck Banner](httpsse://example.com/sonicdeck-banner.png) <!-- Placeholder for a future banner -->
+**High-performance desktop soundboard application built with Tauri v2, Rust, React, and TypeScript.**
 
-**SonicDeck is a high-performance, open-source desktop soundboard application for Windows, macOS, and Linux, built for gamers, streamers, and audio enthusiasts.**
-
-Inspired by the seamless experience of Discord, SonicDeck provides a powerful toolset for managing and broadcasting audio with minimal latency. It's built with a modern stack including **Tauri v2, Rust, React, and TypeScript**.
+Designed for gamers, streamers, and content creators who need professional audio routing with minimal latency. SonicDeck features a sleek, Discord-inspired dark theme and powerful audio management tools.
 
 ---
 
 ## ✨ Features
 
-- **🎧 Dual-Audio Routing**: Play sounds to two separate audio devices simultaneously (e.g., your headphones and a virtual audio cable for your stream).
-- **🎛️ Sound Management**: Easily organize your sounds with categories. Drag and drop `MP3`, `WAV`, and `OGG` files directly into the app.
-- **✂️ Audio Editing**: Visualize and trim your audio clips with an integrated waveform editor powered by `wavesurfer.js`.
-- **Hotkey Support**: Assign global hotkeys to your sounds for instant playback, even when the app is minimized.
-- **Modern UI**: A sleek, Discord-inspired dark theme that's easy on the eyes.
-- **High Performance & Low Latency**: Built with Rust on the backend for optimal performance and near-instant audio playback.
+### 🎧 Dual-Audio Routing
+Play sounds to two separate audio devices simultaneously (e.g., headphones + virtual audio cable for streaming).
 
-## 🗺️ Project Roadmap
+### 🎛️ Sound Library Management
+- **Category Organization**: Organize sounds with custom categories
+- **Drag & Drop Import**: Drop MP3, WAV, or OGG files directly into the app
+- **Favorites System**: Star your most-used sounds for quick access
+- **Custom Icons**: Assign emojis to sounds with built-in picker
+- **Per-Sound Volume**: Individual volume control for each sound
 
-This project is being developed in phases:
+### 📊 Audio Caching & Waveform Visualization
+- **LRU Memory Cache**: 500MB cache for instant repeated playback
+- **Real-time Waveform Display**: High-DPI canvas rendering with playback progress
+- **Interactive Trim Editor**: Non-destructive audio trimming with visual feedback
+- **Trim-aware Playback**: Audio automatically starts/ends at trimmed boundaries
 
-- ✅ **Phase 1 (Audio Foundation)**: Implement the core Rust backend for device listing and dual-sink playback.
-- 🔲 **Phase 2 (Settings & Routing UI)**: Build the user interface for selecting monitor and broadcast audio devices.
-- 🔲 **Phase 3 (Main Dashboard)**: Develop the main soundboard grid and category sidebar.
-- 🔲 **Phase 4 (Editing & Sound Management)**: Integrate the waveform editor, drag-and-drop functionality, and sound persistence.
-- 🔲 **Phase 5 (System Logic)**: Implement global hotkeys, a "stop-all" feature, and configuration management.
+### 🎨 Modern UI/UX
+- Discord-inspired dark theme
+- Smooth animations and transitions
+- Toast notifications for user feedback
+- Responsive layout with drag & drop support
+
+### ⚡ Performance
+- **Rust Backend**: Built with `cpal` + `symphonia` for low-latency audio
+- **Thread-per-playback**: Parallel sound playback without blocking
+- **Background Decoding**: No UI freezes, even with large files
+
+## 🗺️ Development Status
+
+- ✅ **Phase 1**: Audio Foundation (Dual-output engine, device enumeration)
+- ✅ **Phase 2**: Settings & UI (Device configuration, navigation)
+- ✅ **Phase 3**: Sound Library Management (Categories, favorites, drag & drop)
+- ✅ **Phase 4**: Audio Caching, Waveform Visualization & Trim Editor
+- 📋 **Phase 5**: System Integration (Global hotkeys, system tray, autostart)
+
+## 🐛 Beta Testing & Logging
+
+**Log Files for Bug Reports:**
+- Location: `%LOCALAPPDATA%\com.sonicdeck.app\logs\`
+- Format: `sonicdeck.YYYY-MM-DD.log` (e.g., `sonicdeck.2025-12-20.log`)
+- Daily rotation (last 7 days kept automatically)
+- Contains timestamps, thread IDs, errors, and detailed operation logs
+
+**For Testers:** If you encounter bugs, please include the relevant log file with your bug report.
+This helps immensely with debugging! See `TESTING_GUIDE.html` for detailed instructions.
+
+## 🎨 Looking for an Artist!
+
+**We're searching for a talented artist to create visual assets for SonicDeck!**
+
+Needed:
+- App branding (logo, icons, banners)
+- UI/UX design elements
+- Social media graphics
+- Presentation materials
+- Marketing visuals
+- Anything else to enhance the project's visual identity
+
+**This is an open-source community project - contributions are unpaid.**  
+If you're passionate about design and want to contribute to an open-source project, please reach out:
+- 📧 Email: adrikonop@gmail.com
+- 💬 Discord: dranelixx (ID: 624679678573150219)
+
+---
 
 ## 🚀 Getting Started
 
-> **Note**: The project is currently in early development. The following instructions are for building from source.
+> **Note**: SonicDeck is feature-complete for Phases 1-4. Phase 5 (global hotkeys, system tray) is planned.
 
 ### Prerequisites
 
@@ -73,7 +119,31 @@ Please make sure your code adheres to the project's conventions and includes tes
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+### Copyright Notice
+
+```
+Copyright (c) 2025 Adrian Konopczynski (DraneLixX)
+SonicDeck - High-Performance Desktop Soundboard
+```
+
+**What this means:**
+- ✅ You can use, modify, and distribute this software freely
+- ✅ You can use it for commercial purposes
+- ✅ You must include the copyright notice and license in any copies
+- ⚠️ The software is provided "as-is" without warranty
+- 💡 Future paid features may be offered under a separate commercial license
+
+---
+
+## 📞 Contact & Support
+
+**Developer:** Adrian Konopczynski (DraneLixX)
+- 📧 Email: adrikonop@gmail.com
+- 💬 Discord: dranelixx (ID: 624679678573150219)
+- 🐛 GitHub Issues: [Report a Bug](https://github.com/DraneLixX/SonicDeck/issues)
+- 🌐 Repository: [github.com/DraneLixX/SonicDeck](https://github.com/DraneLixX/SonicDeck)
 
 ---
 

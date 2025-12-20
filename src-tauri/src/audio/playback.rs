@@ -5,6 +5,7 @@
 use std::sync::{Arc, Mutex};
 use cpal::traits::{DeviceTrait, StreamTrait};
 use cpal::{Device, Stream};
+use tracing::error;
 
 use super::{AudioData, AudioError};
 
@@ -46,7 +47,7 @@ pub fn create_playback_stream(
                     let vol = *volume.lock().unwrap();
                     write_audio_f32(data, &audio_data, &sample_index, vol, channels, rate_ratio, *end_frame);
                 },
-                |err| eprintln!("Stream error: {}", err),
+                |err| error!("Stream error: {}", err),
                 None,
             )
         }
@@ -61,7 +62,7 @@ pub fn create_playback_stream(
                     let vol = *volume.lock().unwrap();
                     write_audio_i16(data, &audio_data, &sample_index, vol, channels, rate_ratio, *end_frame);
                 },
-                |err| eprintln!("Stream error: {}", err),
+                |err| error!("Stream error: {}", err),
                 None,
             )
         }
@@ -76,7 +77,7 @@ pub fn create_playback_stream(
                     let vol = *volume.lock().unwrap();
                     write_audio_u16(data, &audio_data, &sample_index, vol, channels, rate_ratio, *end_frame);
                 },
-                |err| eprintln!("Stream error: {}", err),
+                |err| error!("Stream error: {}", err),
                 None,
             )
         }

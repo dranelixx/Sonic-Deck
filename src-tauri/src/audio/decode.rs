@@ -10,6 +10,7 @@ use symphonia::core::formats::FormatOptions;
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 use symphonia::core::probe::Hint;
+use tracing::warn;
 
 use super::{AudioData, AudioError};
 
@@ -63,7 +64,7 @@ pub fn decode_audio_file(file_path: &str) -> Result<AudioData, AudioError> {
                 samples.extend_from_slice(sample_buf.samples());
             }
             Err(SymphoniaError::DecodeError(err)) => {
-                eprintln!("Decode error: {}", err);
+                warn!("Decode error (continuing): {}", err);
                 continue;
             }
             Err(e) => return Err(AudioError::Decode(e.to_string())),

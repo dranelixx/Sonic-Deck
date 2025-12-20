@@ -23,6 +23,12 @@ lru = "0.12"
 symphonia = { version = "0.5", features = ["mp3", "isomp4", "vorbis"] }
 tauri-plugin-dialog = "2.0"
 
+# Logging dependencies
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-appender = "0.2"
+dirs = "5.0"
+
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]

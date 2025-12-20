@@ -13,6 +13,7 @@ use std::time::Duration;
 
 use cpal::traits::HostTrait;
 use tauri::{Emitter, State};
+use tracing::{info, error};
 
 pub use audio::{AudioDevice, AudioManager, CacheStats, DeviceId, WaveformData};
 pub use settings::AppSettings;
@@ -74,7 +75,7 @@ fn play_dual_output(
         let audio_data = match cache.lock().unwrap().get_or_decode(&file_path) {
             Ok(data) => data, // Already Arc<AudioData>
             Err(e) => {
-                eprintln!("Failed to decode audio: {}", e);
+                error!("Failed to decode audio: {}", e);
                 manager_inner.lock().unwrap().remove(&playback_id_clone);
                 // Emit error event
                 let _ = app_handle.emit("audio-decode-error", format!("Failed to decode: {}", e));
@@ -91,7 +92,7 @@ fn play_dual_output(
         let output_devices: Vec<_> = match host.output_devices() {
             Ok(devices) => devices.collect(),
             Err(e) => {
-                eprintln!("Failed to enumerate devices: {}", e);
+                error!("Failed to enumerate devices: {}", e);
                 manager_inner.lock().unwrap().remove(&playback_id_clone);
                 return;
             }
@@ -101,14 +102,14 @@ fn play_dual_output(
         let (idx1, idx2) = match (device_id_1.index(), device_id_2.index()) {
             (Ok(i1), Ok(i2)) => (i1, i2),
             _ => {
-                eprintln!("Invalid device IDs");
+                error!("Invalid device IDs: {} / {}", device_id_1, device_id_2);
                 manager_inner.lock().unwrap().remove(&playback_id_clone);
                 return;
             }
         };
 
         let (Some(device_1), Some(device_2)) = (output_devices.get(idx1), output_devices.get(idx2)) else {
-            eprintln!("Devices not found");
+            error!("Devices not found at indices {} and {}", idx1, idx2);
             manager_inner.lock().unwrap().remove(&playback_id_clone);
             return;
         };
@@ -122,7 +123,7 @@ fn play_dual_output(
         let stream_1 = match audio::create_playback_stream(device_1, audio_data.clone(), volume_state.clone(), start_frame, end_frame) {
             Ok(s) => s,
             Err(e) => {
-                eprintln!("Failed to create stream 1: {}", e);
+                error!("Failed to create stream 1: {}", e);
                 manager_inner.lock().unwrap().remove(&playback_id_clone);
                 return;
             }
@@ -131,7 +132,7 @@ fn play_dual_output(
         let stream_2 = match audio::create_playback_stream(device_2, audio_data.clone(), volume_state.clone(), start_frame, end_frame) {
             Ok(s) => s,
             Err(e) => {
-                eprintln!("Failed to create stream 2: {}", e);
+                error!("Failed to create stream 2: {}", e);
                 manager_inner.lock().unwrap().remove(&playback_id_clone);
                 return;
             }
@@ -212,6 +213,80 @@ fn clear_audio_cache(manager: State<'_, AudioManager>) -> Result<(), String> {
 #[tauri::command]
 fn get_cache_stats(manager: State<'_, AudioManager>) -> Result<CacheStats, String> {
     Ok(manager.cache_stats())
+}
+
+/// Get logs directory path
+#[tauri::command]
+fn get_logs_path() -> Result<String, String> {
+    let logs_dir = dirs::data_local_dir()
+        .ok_or("Could not find app data directory")?
+        .join("com.sonicdeck.app")
+        .join("logs");
+    
+    Ok(logs_dir.to_string_lossy().to_string())
+}
+
+/// Read the current log file
+#[tauri::command]
+fn read_logs() -> Result<String, String> {
+    let logs_dir = dirs::data_local_dir()
+        .ok_or("Could not find app data directory")?
+        .join("com.sonicdeck.app")
+        .join("logs");
+    
+    // Find the most recent log file
+    let log_files = std::fs::read_dir(&logs_dir)
+        .map_err(|e| format!("Failed to read logs directory: {}", e))?
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| {
+            entry.path().extension()
+                .and_then(|ext| ext.to_str())
+                .map(|ext| ext == "log")
+                .unwrap_or(false)
+        })
+        .collect::<Vec<_>>();
+    
+    if log_files.is_empty() {
+        return Ok("No log files found.".to_string());
+    }
+    
+    // Get the most recent log file (by modified time)
+    let most_recent = log_files.iter()
+        .max_by_key(|entry| {
+            entry.metadata()
+                .and_then(|m| m.modified())
+                .ok()
+        })
+        .ok_or("Failed to find recent log file")?;
+    
+    std::fs::read_to_string(most_recent.path())
+        .map_err(|e| format!("Failed to read log file: {}", e))
+}
+
+/// Clear all log files
+#[tauri::command]
+fn clear_logs() -> Result<(), String> {
+    let logs_dir = dirs::data_local_dir()
+        .ok_or("Could not find app data directory")?
+        .join("com.sonicdeck.app")
+        .join("logs");
+    
+    if !logs_dir.exists() {
+        return Ok(());
+    }
+    
+    let log_files = std::fs::read_dir(&logs_dir)
+        .map_err(|e| format!("Failed to read logs directory: {}", e))?;
+    
+    for entry in log_files.filter_map(|e| e.ok()) {
+        if entry.path().extension().and_then(|ext| ext.to_str()) == Some("log") {
+            std::fs::remove_file(entry.path())
+                .map_err(|e| format!("Failed to delete log file: {}", e))?;
+        }
+    }
+    
+    info!("Log files cleared by user");
+    Ok(())
 }
 
 /// Get waveform data for an audio file
@@ -408,6 +483,9 @@ pub fn run() {
             stop_playback,
             clear_audio_cache,
             get_cache_stats,
+            get_logs_path,
+            read_logs,
+            clear_logs,
             get_waveform,
             load_settings,
             save_settings,
