@@ -1,27 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-
-interface AudioDevice {
-  id: string;
-  name: string;
-  is_default: boolean;
-}
-
-interface AppSettings {
-  monitor_device_id: string | null;
-  broadcast_device_id: string | null;
-  default_volume: number;
-  volume_multiplier: number;
-  last_file_path: string | null;
-}
-
-interface SettingsProps {
-  devices: AudioDevice[];
-  settings: AppSettings | null;
-  refreshDevices: () => Promise<void>;
-  reloadSettings: () => Promise<void>;
-  saveSettings: (settings: AppSettings) => Promise<void>;
-}
+import { AppSettings, SettingsProps } from "../types";
 
 export default function Settings({
   devices,
@@ -36,6 +15,9 @@ export default function Settings({
     default_volume: 0.5,
     volume_multiplier: 1.0,
     last_file_path: null,
+    minimize_to_tray: false,
+    start_minimized: false,
+    autostart_enabled: false,
   });
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -314,7 +296,7 @@ export default function Settings({
 
             {/* Global Volume Boost */}
             <div>
-              <div className="flex items-center gap-2 text-sm font-medium text-discord-text mb-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-discord-text mb-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={settings.volume_multiplier > 1.0}
@@ -338,7 +320,7 @@ export default function Settings({
                     %)
                   </span>
                 )}
-              </div>
+              </label>
 
               {settings.volume_multiplier > 1.0 && (
                 <>
@@ -375,6 +357,87 @@ export default function Settings({
                 </p>
               )}
             </div>
+          </div>
+
+          {/* System Tray Preferences */}
+          <div className="bg-discord-dark rounded-lg p-6 space-y-4">
+            <h2 className="text-xl font-semibold text-discord-text mb-4">
+              System Tray
+            </h2>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.minimize_to_tray}
+                onChange={(e) =>
+                  updateSetting("minimize_to_tray", e.target.checked)
+                }
+                className="rounded border-discord-dark bg-discord-darker
+                         text-discord-primary focus:ring-discord-primary cursor-pointer"
+              />
+              <span className="text-sm text-discord-text">
+                Minimize to tray instead of closing
+              </span>
+            </label>
+            <p className="text-xs text-discord-text-muted ml-6">
+              When enabled, clicking the close button will minimize the app to
+              the system tray instead of quitting.
+            </p>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.start_minimized}
+                onChange={(e) =>
+                  updateSetting("start_minimized", e.target.checked)
+                }
+                className="rounded border-discord-dark bg-discord-darker
+                         text-discord-primary focus:ring-discord-primary cursor-pointer"
+              />
+              <span className="text-sm text-discord-text">
+                Start application minimized to tray
+              </span>
+            </label>
+            <p className="text-xs text-discord-text-muted ml-6">
+              Launch SonicDeck directly in the system tray on startup.
+            </p>
+          </div>
+
+          {/* Startup Behavior */}
+          <div className="bg-discord-dark rounded-lg p-6 space-y-4">
+            <h2 className="text-xl font-semibold text-discord-text mb-4">
+              Startup Behavior
+            </h2>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.autostart_enabled}
+                onChange={async (e) => {
+                  const enabled = e.target.checked;
+                  updateSetting("autostart_enabled", enabled);
+                  try {
+                    if (enabled) {
+                      await invoke("enable_autostart");
+                    } else {
+                      await invoke("disable_autostart");
+                    }
+                  } catch (err) {
+                    setStatus(`Error: ${err}`);
+                  }
+                }}
+                className="rounded border-discord-dark bg-discord-darker
+                         text-discord-primary focus:ring-discord-primary cursor-pointer"
+              />
+              <span className="text-sm text-discord-text">
+                Launch SonicDeck on system startup
+              </span>
+            </label>
+            <p className="text-xs text-discord-text-muted ml-6">
+              {settings.start_minimized
+                ? "Will start minimized to tray"
+                : "Will start normally in a window"}
+            </p>
           </div>
 
           {/* Available Devices List */}

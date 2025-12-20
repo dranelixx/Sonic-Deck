@@ -1,5 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Sound } from "../types";
+import HotkeyManager from "./HotkeyManager";
+import { formatHotkeyForDisplay } from "../utils/hotkeyDisplay";
+
+interface HotkeyMapping {
+  mappings: Record<string, string>;
+}
 
 interface SoundButtonProps {
   sound: Sound;
@@ -11,6 +17,8 @@ interface SoundButtonProps {
   onTrim: (sound: Sound) => void;
   showMenu: boolean;
   onMenuChange: (show: boolean) => void;
+  hotkeyMappings: HotkeyMapping;
+  onHotkeyChanged: () => void;
 }
 
 export default function SoundButton({
@@ -23,7 +31,11 @@ export default function SoundButton({
   onTrim,
   showMenu,
   onMenuChange,
+  hotkeyMappings,
+  onHotkeyChanged,
 }: SoundButtonProps) {
+  const [showHotkeyManager, setShowHotkeyManager] = useState(false);
+
   const handleClick = () => {
     // Always call onPlay - let Dashboard handle restart logic
     onPlay(sound);
@@ -68,6 +80,17 @@ export default function SoundButton({
     onTrim(sound);
   };
 
+  const handleAssignHotkey = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onMenuChange(false);
+    setShowHotkeyManager(true);
+  };
+
+  // Get the hotkey assigned to this sound
+  const assignedHotkey = Object.entries(hotkeyMappings.mappings).find(
+    ([_, soundId]) => soundId === sound.id
+  )?.[0];
+
   return (
     <div className="relative">
       <button
@@ -93,6 +116,13 @@ export default function SoundButton({
         <span className="text-xs truncate w-full px-1 text-center">
           {sound.name}
         </span>
+
+        {/* Hotkey display */}
+        {assignedHotkey && (
+          <span className="text-[10px] text-discord-text-muted font-mono truncate w-full px-1 text-center">
+            {formatHotkeyForDisplay(assignedHotkey)}
+          </span>
+        )}
 
         {/* Favorite star */}
         {sound.is_favorite && (
@@ -146,6 +176,14 @@ export default function SoundButton({
             Trim Audio
           </button>
           <button
+            onClick={handleAssignHotkey}
+            className="w-full px-4 py-2 text-left text-sm text-discord-text
+                     hover:bg-discord-primary hover:text-white transition-colors"
+          >
+            Assign Hotkey
+          </button>
+          <div className="border-t border-discord-dark my-1"></div>
+          <button
             onClick={handleDelete}
             className="w-full px-4 py-2 text-left text-sm text-discord-danger
                      hover:bg-discord-danger hover:text-white transition-colors"
@@ -153,6 +191,16 @@ export default function SoundButton({
             Delete Sound
           </button>
         </div>
+      )}
+
+      {/* Hotkey Manager Modal */}
+      {showHotkeyManager && (
+        <HotkeyManager
+          sound={sound}
+          hotkeyMappings={hotkeyMappings}
+          onClose={() => setShowHotkeyManager(false)}
+          onHotkeyAssigned={onHotkeyChanged}
+        />
       )}
     </div>
   );

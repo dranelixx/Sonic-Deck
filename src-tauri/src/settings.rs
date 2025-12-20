@@ -22,10 +22,23 @@ pub struct AppSettings {
     pub volume_multiplier: f32,
     /// Last used audio file path (for convenience)
     pub last_file_path: Option<String>,
+    /// Close button behavior: true = minimize to tray, false = quit app
+    #[serde(default = "default_minimize_to_tray")]
+    pub minimize_to_tray: bool,
+    /// Start application minimized to tray
+    #[serde(default)]
+    pub start_minimized: bool,
+    /// Enable autostart on system boot
+    #[serde(default)]
+    pub autostart_enabled: bool,
 }
 
 fn default_volume_multiplier() -> f32 {
     1.0 // Default: disabled (no boost), sounds play at normal Windows volume
+}
+
+fn default_minimize_to_tray() -> bool {
+    true // Default: close minimizes to tray
 }
 
 impl Default for AppSettings {
@@ -36,6 +49,9 @@ impl Default for AppSettings {
             default_volume: 0.5,
             volume_multiplier: default_volume_multiplier(),
             last_file_path: None,
+            minimize_to_tray: default_minimize_to_tray(),
+            start_minimized: false,
+            autostart_enabled: false,
         }
     }
 }

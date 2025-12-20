@@ -32,6 +32,11 @@ interface ActiveWaveform {
 // Debug logging flag - only active in development
 const DEBUG = import.meta.env.DEV;
 
+// Hotkey mapping interface
+interface HotkeyMapping {
+  mappings: Record<string, string>;
+}
+
 export default function Dashboard({
   devices,
   settings,
@@ -47,6 +52,9 @@ export default function Dashboard({
     new Set()
   );
   const [hasLoadedSettings, setHasLoadedSettings] = useState<boolean>(false);
+  const [hotkeyMappings, setHotkeyMappings] = useState<HotkeyMapping>({
+    mappings: {},
+  });
 
   // Toast notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -104,6 +112,29 @@ export default function Dashboard({
       setSelectedCategoryId(sorted[0]?.id || "");
     }
   }, [soundLibrary.categories, selectedCategoryId]);
+
+  // Load hotkey mappings on mount
+  useEffect(() => {
+    const loadHotkeys = async () => {
+      try {
+        const mappings = await invoke<HotkeyMapping>("load_hotkeys");
+        setHotkeyMappings(mappings);
+      } catch (error) {
+        console.error("Failed to load hotkey mappings:", error);
+      }
+    };
+    loadHotkeys();
+  }, []);
+
+  // Refresh hotkey mappings (called when hotkeys change)
+  const refreshHotkeys = useCallback(async () => {
+    try {
+      const mappings = await invoke<HotkeyMapping>("load_hotkeys");
+      setHotkeyMappings(mappings);
+    } catch (error) {
+      console.error("Failed to refresh hotkey mappings:", error);
+    }
+  }, []);
 
   // Helper to show toast notifications
   const showToast = useCallback((message: string) => {
@@ -677,9 +708,9 @@ export default function Dashboard({
       )}
 
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden flex flex-col p-6">
+      <div className="flex-1 overflow-hidden flex flex-col py-6">
         {/* Category Tabs + Favorites Button */}
-        <div className="mb-4 flex items-center justify-between gap-4 pb-2 border-b border-discord-dark">
+        <div className="mb-4 flex items-center justify-between gap-4 pb-2 border-b border-discord-dark px-6">
           <div className="flex-1 min-w-0">
             <CategoryTabs
               categories={soundLibrary.categories}
@@ -715,7 +746,7 @@ export default function Dashboard({
         </div>
 
         {/* Sound Grid */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto px-6">
           {filteredSounds.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-discord-text-muted">
               <div className="text-6xl mb-4">🔇</div>
@@ -760,6 +791,8 @@ export default function Dashboard({
                             show ? { type: "sound", id: sound.id } : null
                           )
                         }
+                        hotkeyMappings={hotkeyMappings}
+                        onHotkeyChanged={refreshHotkeys}
                       />
                     ))}
                   </div>
@@ -801,6 +834,8 @@ export default function Dashboard({
                             show ? { type: "sound", id: sound.id } : null
                           )
                         }
+                        hotkeyMappings={hotkeyMappings}
+                        onHotkeyChanged={refreshHotkeys}
                       />
                     ))}
 
@@ -841,6 +876,8 @@ export default function Dashboard({
                           show ? { type: "sound", id: sound.id } : null
                         )
                       }
+                      hotkeyMappings={hotkeyMappings}
+                      onHotkeyChanged={refreshHotkeys}
                     />
                   ))}
                 </div>

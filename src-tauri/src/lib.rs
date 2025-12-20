@@ -3,8 +3,10 @@
 //! Rust backend with dual-output audio routing (cpal-based implementation).
 
 mod audio;
+mod hotkeys;
 mod settings;
 mod sounds;
+mod tray;
 
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
@@ -347,6 +349,144 @@ fn get_settings_file_path(app_handle: tauri::AppHandle) -> Result<String, String
     Ok(path.to_string_lossy().to_string())
 }
 
+/// Enable autostart on system boot
+#[tauri::command]
+fn enable_autostart(app_handle: tauri::AppHandle) -> Result<(), String> {
+    #[cfg(desktop)]
+    {
+        use tauri_plugin_autostart::ManagerExt;
+        app_handle
+            .autolaunch()
+            .enable()
+            .map_err(|e| format!("Failed to enable autostart: {}", e))?;
+    }
+    Ok(())
+}
+
+/// Disable autostart on system boot
+#[tauri::command]
+fn disable_autostart(app_handle: tauri::AppHandle) -> Result<(), String> {
+    #[cfg(desktop)]
+    {
+        use tauri_plugin_autostart::ManagerExt;
+        app_handle
+            .autolaunch()
+            .disable()
+            .map_err(|e| format!("Failed to disable autostart: {}", e))?;
+    }
+    Ok(())
+}
+
+/// Check if autostart is enabled
+#[tauri::command]
+fn is_autostart_enabled(app_handle: tauri::AppHandle) -> Result<bool, String> {
+    #[cfg(desktop)]
+    {
+        use tauri_plugin_autostart::ManagerExt;
+        app_handle
+            .autolaunch()
+            .is_enabled()
+            .map_err(|e| format!("Failed to check autostart status: {}", e))
+    }
+    #[cfg(not(desktop))]
+    Ok(false)
+}
+
+// ============================================================================
+// TAURI COMMANDS - Global Hotkeys
+// ============================================================================
+
+/// Load hotkey mappings from disk
+#[tauri::command]
+fn load_hotkeys(app_handle: tauri::AppHandle) -> Result<hotkeys::HotkeyMappings, String> {
+    hotkeys::load(&app_handle)
+}
+
+/// Save hotkey mappings to disk
+#[tauri::command]
+fn save_hotkeys(
+    mappings: hotkeys::HotkeyMappings,
+    app_handle: tauri::AppHandle,
+) -> Result<(), String> {
+    hotkeys::save(&mappings, &app_handle)
+}
+
+/// Register a global hotkey for a sound
+#[tauri::command]
+fn register_hotkey(
+    hotkey: String,
+    sound_id: SoundId,
+    app_handle: tauri::AppHandle,
+) -> Result<(), String> {
+    use tauri_plugin_global_shortcut::GlobalShortcutExt;
+
+    // Load current mappings
+    let mut mappings = hotkeys::load(&app_handle)?;
+
+    // Add mapping (checks for duplicates)
+    hotkeys::add_mapping(&mut mappings, hotkey.clone(), sound_id.clone())?;
+
+    // Parse and register with the plugin
+    let shortcut = hotkey
+        .parse::<tauri_plugin_global_shortcut::Shortcut>()
+        .map_err(|e| format!("Failed to parse hotkey '{}': {}", hotkey, e))?;
+
+    tracing::info!("Parsed hotkey '{}' to shortcut: {:?}", hotkey, shortcut);
+
+    app_handle
+        .global_shortcut()
+        .register(shortcut)
+        .map_err(|e| format!("Failed to register hotkey: {}", e))?;
+
+    // Save updated mappings
+    hotkeys::save(&mappings, &app_handle)?;
+
+    tracing::info!(
+        "Successfully registered global hotkey: {} -> {:?}",
+        hotkey,
+        sound_id
+    );
+    Ok(())
+}
+
+/// Unregister a global hotkey
+#[tauri::command]
+fn unregister_hotkey(hotkey: String, app_handle: tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_global_shortcut::GlobalShortcutExt;
+
+    // Load current mappings
+    let mut mappings = hotkeys::load(&app_handle)?;
+
+    // Remove mapping
+    hotkeys::remove_mapping(&mut mappings, &hotkey)?;
+
+    // Parse and unregister from the plugin
+    let shortcut = hotkey
+        .parse::<tauri_plugin_global_shortcut::Shortcut>()
+        .map_err(|e| format!("Failed to parse hotkey '{}': {}", hotkey, e))?;
+    app_handle
+        .global_shortcut()
+        .unregister(shortcut)
+        .map_err(|e| format!("Failed to unregister hotkey: {}", e))?;
+
+    // Save updated mappings
+    hotkeys::save(&mappings, &app_handle)?;
+
+    tracing::info!("Unregistered global hotkey: {}", hotkey);
+    Ok(())
+}
+
+/// Check if a hotkey is currently registered
+#[tauri::command]
+fn is_hotkey_registered(hotkey: String, app_handle: tauri::AppHandle) -> Result<bool, String> {
+    use tauri_plugin_global_shortcut::GlobalShortcutExt;
+
+    let shortcut = hotkey
+        .parse::<tauri_plugin_global_shortcut::Shortcut>()
+        .map_err(|e| format!("Failed to parse hotkey '{}': {}", hotkey, e))?;
+    Ok(app_handle.global_shortcut().is_registered(shortcut))
+}
+
 // ============================================================================
 // TAURI COMMANDS - Sound Library
 // ============================================================================
@@ -476,6 +616,265 @@ fn delete_category(
 }
 
 // ============================================================================
+// GLOBAL SHORTCUT HANDLING
+// ============================================================================
+
+/// Normalize hotkey string to match our storage format
+fn normalize_hotkey_string(hotkey: &str) -> String {
+    // Split by + and normalize each part
+    let parts: Vec<&str> = hotkey.split('+').collect();
+    let normalized_parts: Vec<String> = parts
+        .iter()
+        .map(|part| {
+            let trimmed = part.trim();
+            match trimmed.to_lowercase().as_str() {
+                "control" => "Ctrl".to_string(),
+                "alt" => "Alt".to_string(),
+                "shift" => "Shift".to_string(),
+                "meta" => "Super".to_string(),
+                // Handle NumPad keys
+                "numpad0" => "NumPad0".to_string(),
+                "numpad1" => "NumPad1".to_string(),
+                "numpad2" => "NumPad2".to_string(),
+                "numpad3" => "NumPad3".to_string(),
+                "numpad4" => "NumPad4".to_string(),
+                "numpad5" => "NumPad5".to_string(),
+                "numpad6" => "NumPad6".to_string(),
+                "numpad7" => "NumPad7".to_string(),
+                "numpad8" => "NumPad8".to_string(),
+                "numpad9" => "NumPad9".to_string(),
+                "numpaddecimal" => "NumPadDecimal".to_string(),
+                "numpadenter" => "NumPadEnter".to_string(),
+                "numpadadd" => "NumPadAdd".to_string(),
+                "numpadsubtract" => "NumPadSubtract".to_string(),
+                "numpadmultiply" => "NumPadMultiply".to_string(),
+                "numpaddivide" => "NumPadDivide".to_string(),
+                // Keep other keys as-is but capitalize first letter for consistency
+                other => {
+                    if !other.is_empty() {
+                        let mut chars = other.chars();
+                        match chars.next() {
+                            None => String::new(),
+                            Some(first) => first.to_uppercase().chain(chars).collect(),
+                        }
+                    } else {
+                        other.to_string()
+                    }
+                }
+            }
+        })
+        .collect();
+
+    normalized_parts.join("+")
+}
+
+/// Handle global shortcut events
+#[cfg(desktop)]
+fn handle_global_shortcut(
+    app: &tauri::AppHandle,
+    shortcut: &tauri_plugin_global_shortcut::Shortcut,
+    event: &tauri_plugin_global_shortcut::ShortcutEvent,
+) {
+    use tauri_plugin_global_shortcut::ShortcutState;
+
+    let hotkey_str = shortcut.to_string();
+
+    // Normalize the hotkey string to match our stored format
+    let normalized_hotkey = normalize_hotkey_string(&hotkey_str);
+
+    tracing::info!(
+        "Global shortcut event received: {} -> normalized: {} (state: {:?})",
+        hotkey_str,
+        normalized_hotkey,
+        event.state
+    );
+
+    // Only handle pressed state
+    if event.state != ShortcutState::Pressed {
+        tracing::debug!("Ignoring non-pressed state: {:?}", event.state);
+        return;
+    }
+
+    tracing::info!("Processing hotkey press: {}", normalized_hotkey);
+
+    // Load hotkey mappings
+    let mappings = match hotkeys::load(app) {
+        Ok(m) => {
+            tracing::info!("Loaded {} hotkey mappings", m.mappings.len());
+            for (key, sound_id) in &m.mappings {
+                tracing::debug!("  Mapping: '{}' -> {:?}", key, sound_id);
+            }
+            m
+        }
+        Err(e) => {
+            tracing::error!("Failed to load hotkey mappings: {}", e);
+            return;
+        }
+    };
+
+    // Get sound ID for this hotkey using the normalized string
+    let sound_id = match hotkeys::get_sound_id(&mappings, &normalized_hotkey) {
+        Some(id) => {
+            tracing::info!("Found sound mapping: '{}' -> {:?}", normalized_hotkey, id);
+            id.clone()
+        }
+        None => {
+            tracing::warn!(
+                "No sound mapped to hotkey: '{}'. Available mappings:",
+                normalized_hotkey
+            );
+            for key in mappings.mappings.keys() {
+                tracing::warn!("  Available: '{}'", key);
+            }
+            return;
+        }
+    };
+
+    // Load sound library
+    let library = match sounds::load(app) {
+        Ok(l) => l,
+        Err(e) => {
+            tracing::error!("Failed to load sound library: {}", e);
+            return;
+        }
+    };
+
+    // Find the sound
+    let sound = match library.sounds.iter().find(|s| s.id == sound_id) {
+        Some(s) => s,
+        None => {
+            tracing::warn!(
+                "Sound not found for hotkey: {} -> {:?}",
+                hotkey_str,
+                sound_id
+            );
+            return;
+        }
+    };
+
+    // Load settings
+    let settings = match settings::load(app) {
+        Ok(s) => s,
+        Err(e) => {
+            tracing::error!("Failed to load settings: {}", e);
+            return;
+        }
+    };
+
+    // Get device IDs
+    let device1 = match settings.monitor_device_id {
+        Some(ref id) => id.clone(),
+        None => {
+            tracing::warn!("No monitor device configured");
+            return;
+        }
+    };
+
+    let device2 = match settings.broadcast_device_id {
+        Some(ref id) => id.clone(),
+        None => {
+            tracing::warn!("No broadcast device configured");
+            return;
+        }
+    };
+
+    // Determine volume
+    let volume = sound.volume.unwrap_or(settings.default_volume);
+
+    // Get audio manager from state
+    use tauri::Manager as TauriManager;
+    let manager = app.state::<AudioManager>();
+
+    // Trigger playback
+    match play_dual_output(
+        sound.file_path.clone(),
+        device1,
+        device2,
+        volume,
+        sound.trim_start_ms,
+        sound.trim_end_ms,
+        manager,
+        app.clone(),
+    ) {
+        Ok(playback_id) => {
+            tracing::info!(
+                "Hotkey '{}' triggered sound '{}' (playback: {})",
+                normalized_hotkey,
+                sound.name,
+                playback_id
+            );
+        }
+        Err(e) => {
+            tracing::error!("Failed to play sound from hotkey: {}", e);
+        }
+    }
+}
+
+/// Register all saved hotkeys on app startup
+#[cfg(desktop)]
+fn register_saved_hotkeys(app: &tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_global_shortcut::GlobalShortcutExt;
+
+    let mappings = hotkeys::load(app)?;
+
+    for (hotkey, sound_id) in &mappings.mappings {
+        if let Ok(shortcut) = hotkey.parse::<tauri_plugin_global_shortcut::Shortcut>() {
+            match app.global_shortcut().register(shortcut) {
+                Ok(_) => {
+                    tracing::info!("Registered saved hotkey: {} -> {:?}", hotkey, sound_id);
+                }
+                Err(e) => {
+                    tracing::error!("Failed to register saved hotkey '{}': {}", hotkey, e);
+                }
+            }
+        } else {
+            tracing::error!("Failed to parse saved hotkey: {}", hotkey);
+        }
+    }
+
+    Ok(())
+}
+
+/// Clean up orphaned hotkeys (hotkeys for sounds that no longer exist)
+#[cfg(desktop)]
+fn cleanup_orphaned_hotkeys(app: &tauri::AppHandle) -> Result<(), String> {
+    use std::collections::HashSet;
+    use tauri_plugin_global_shortcut::GlobalShortcutExt;
+
+    let mut mappings = hotkeys::load(app)?;
+    let library = sounds::load(app)?;
+
+    // Create set of valid sound IDs
+    let valid_ids: HashSet<_> = library.sounds.iter().map(|s| &s.id).collect();
+
+    // Track orphaned hotkeys
+    let mut orphaned = Vec::new();
+
+    // Find orphaned hotkeys
+    for (hotkey, sound_id) in &mappings.mappings {
+        if !valid_ids.contains(sound_id) {
+            tracing::warn!("Removing orphaned hotkey: {} -> {:?}", hotkey, sound_id);
+            orphaned.push(hotkey.clone());
+        }
+    }
+
+    // Remove orphaned hotkeys
+    for hotkey in orphaned {
+        hotkeys::remove_mapping(&mut mappings, &hotkey)?;
+        if let Ok(shortcut) = hotkey.parse::<tauri_plugin_global_shortcut::Shortcut>() {
+            let _ = app.global_shortcut().unregister(shortcut);
+        }
+    }
+
+    // Save cleaned mappings
+    if !mappings.mappings.is_empty() {
+        hotkeys::save(&mappings, app)?;
+    }
+
+    Ok(())
+}
+
+// ============================================================================
 // TAURI APP INITIALIZATION
 // ============================================================================
 
@@ -500,6 +899,14 @@ pub fn run() {
             load_settings,
             save_settings,
             get_settings_file_path,
+            enable_autostart,
+            disable_autostart,
+            is_autostart_enabled,
+            load_hotkeys,
+            save_hotkeys,
+            register_hotkey,
+            unregister_hotkey,
+            is_hotkey_registered,
             load_sounds,
             add_sound,
             update_sound,
@@ -509,6 +916,67 @@ pub fn run() {
             update_category,
             delete_category,
         ])
+        .setup(|app| {
+            #[cfg(desktop)]
+            {
+                use tauri::Manager;
+                use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
+
+                // Initialize autostart plugin
+                app.handle()
+                    .plugin(tauri_plugin_autostart::init(
+                        MacosLauncher::LaunchAgent,
+                        None::<Vec<&str>>,
+                    ))
+                    .map_err(|e| format!("Failed to initialize autostart plugin: {}", e))?;
+
+                // Apply saved autostart setting
+                let settings = settings::load(app.handle()).unwrap_or_default();
+                let autostart_manager = app.autolaunch();
+                if settings.autostart_enabled {
+                    let _ = autostart_manager.enable();
+                } else {
+                    let _ = autostart_manager.disable();
+                }
+
+                // Initialize global shortcut plugin
+                app.handle()
+                    .plugin(
+                        tauri_plugin_global_shortcut::Builder::new()
+                            .with_handler(|app, shortcut, event| {
+                                handle_global_shortcut(app, shortcut, &event);
+                            })
+                            .build(),
+                    )
+                    .map_err(|e| format!("Failed to initialize global shortcut plugin: {}", e))?;
+
+                // Cleanup orphaned hotkeys
+                if let Err(e) = cleanup_orphaned_hotkeys(app.handle()) {
+                    error!("Failed to cleanup orphaned hotkeys: {}", e);
+                }
+
+                // Register saved hotkeys
+                if let Err(e) = register_saved_hotkeys(app.handle()) {
+                    error!("Failed to register saved hotkeys: {}", e);
+                }
+
+                // Initialize system tray
+                if let Err(e) = tray::init(app.handle()) {
+                    error!("Failed to initialize system tray: {}", e);
+                }
+
+                // Optionally start minimized
+                let settings = settings::load(app.handle()).unwrap_or_default();
+                if settings.start_minimized {
+                    if let Some(window) = app.get_webview_window("main") {
+                        let _ = window.hide();
+                        info!("Started minimized to tray");
+                    }
+                }
+            }
+
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

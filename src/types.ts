@@ -18,6 +18,9 @@ export interface AppSettings {
   default_volume: number;
   volume_multiplier: number; // Global volume scaling (0.1 - 1.0), default 0.2
   last_file_path: string | null;
+  minimize_to_tray: boolean; // Close button behavior: true = minimize to tray, false = quit app
+  start_minimized: boolean; // Start application minimized to tray
+  autostart_enabled: boolean; // Enable autostart on system boot
 }
 
 // ============================================================================

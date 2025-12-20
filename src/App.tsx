@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import Dashboard from "./components/Dashboard";
 import Settings from "./components/Settings";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -43,6 +44,40 @@ function App() {
     };
     initialize();
   }, []);
+
+  // Handle window close event based on minimize_to_tray setting
+  useEffect(() => {
+    if (!settings) return;
+
+    const window = getCurrentWindow();
+    console.log(
+      "Setting up close handler, minimize_to_tray:",
+      settings.minimize_to_tray
+    );
+
+    const unlisten = window.onCloseRequested(async (event) => {
+      console.log(
+        "Close event received! minimize_to_tray:",
+        settings.minimize_to_tray
+      );
+
+      if (settings.minimize_to_tray) {
+        event.preventDefault();
+        try {
+          await window.hide();
+          console.log("Window minimized to tray via X button");
+        } catch (err) {
+          console.error("Failed to hide window:", err);
+        }
+      } else {
+        console.log("Window closing normally (minimize_to_tray is disabled)");
+      }
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [settings?.minimize_to_tray]);
 
   const refreshDevices = async () => {
     try {
