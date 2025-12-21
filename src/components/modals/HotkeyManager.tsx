@@ -1,11 +1,7 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Sound } from "../types";
-import { formatHotkeyForDisplay } from "../utils/hotkeyDisplay";
-
-interface HotkeyMapping {
-  mappings: Record<string, string>; // hotkey -> sound_id
-}
+import { Sound, HotkeyMapping } from "../../types";
+import { formatHotkeyForDisplay } from "../../utils/hotkeyDisplay";
 
 interface HotkeyManagerProps {
   sound: Sound;

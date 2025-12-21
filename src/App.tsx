@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import Dashboard from "./components/Dashboard";
-import Settings from "./components/Settings";
-import ErrorBoundary from "./components/ErrorBoundary";
+import Dashboard from "./components/dashboard/Dashboard";
+import Settings from "./components/settings/Settings";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 import { AudioDevice, AppSettings, SoundLibrary } from "./types";
 
 type View = "dashboard" | "settings";

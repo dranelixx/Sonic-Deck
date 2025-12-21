@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, memo } from "react";
-import { waveformQueue } from "../utils/waveformQueue";
+import { waveformQueue } from "../../utils/waveformQueue";
 
 interface MiniWaveformProps {
   filePath: string;

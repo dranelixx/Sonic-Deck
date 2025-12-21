@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { fetchFromCDN, CompactEmoji } from "emojibase";
-import { Sound, Category } from "../types";
+import { Sound, Category } from "../../types";
 
 interface SoundModalProps {
   isOpen: boolean;

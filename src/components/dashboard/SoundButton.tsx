@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
-import { Sound } from "../types";
-import HotkeyManager from "./HotkeyManager";
-import { formatHotkeyForDisplay } from "../utils/hotkeyDisplay";
-
-interface HotkeyMapping {
-  mappings: Record<string, string>;
-}
+import { Sound, HotkeyMapping } from "../../types";
+import HotkeyManager from "../modals/HotkeyManager";
+import { formatHotkeyForDisplay } from "../../utils/hotkeyDisplay";
 
 interface SoundButtonProps {
   sound: Sound;

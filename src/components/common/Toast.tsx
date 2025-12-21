@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ANIMATION_DURATIONS } from "../../constants";
 
 interface ToastProps {
   message: string;
@@ -9,7 +10,7 @@ interface ToastProps {
 export default function Toast({
   message,
   onClose,
-  duration = 3000,
+  duration = ANIMATION_DURATIONS.TOAST_DURATION,
 }: ToastProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
@@ -23,7 +24,7 @@ export default function Toast({
     // Start exit animation before removing
     const exitTimer = setTimeout(() => {
       setIsExiting(true);
-    }, duration - 600); // Start exit 600ms before removal (longer exit animation)
+    }, duration - ANIMATION_DURATIONS.TOAST_EXIT_START);
 
     // Remove from DOM after animation completes
     const removeTimer = setTimeout(() => {

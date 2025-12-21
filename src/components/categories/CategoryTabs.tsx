@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Category } from "../types";
+import { Category } from "../../types";
 
 interface CategoryTabsProps {
   categories: Category[];

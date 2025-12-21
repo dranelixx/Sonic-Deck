@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Sound } from "../types";
+import { Sound } from "../../types";
 
 interface TrimEditorProps {
   sound: Sound;

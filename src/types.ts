@@ -75,3 +75,11 @@ export interface SettingsProps {
   reloadSettings: () => Promise<void>;
   saveSettings: (settings: AppSettings) => Promise<void>;
 }
+
+// ============================================================================
+// Hotkey Types
+// ============================================================================
+
+export interface HotkeyMapping {
+  mappings: Record<string, string>; // hotkey -> sound_id
+}

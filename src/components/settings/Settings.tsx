@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { AppSettings, SettingsProps } from "../types";
+import { AppSettings, SettingsProps } from "../../types";
 
 export default function Settings({
   devices,
