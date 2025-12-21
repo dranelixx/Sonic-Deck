@@ -58,7 +58,7 @@ fn handle_tray_menu_event<R: Runtime>(app: &tauri::AppHandle<R>, event_id: &str)
         "stop_all" => {
             // Call the stop_all_audio command
             let manager = app.state::<crate::AudioManager>();
-            if let Err(e) = crate::stop_all_audio(manager) {
+            if let Err(e) = crate::commands::stop_all_audio(manager) {
                 tracing::error!("Failed to stop all audio from tray: {}", e);
             } else {
                 tracing::debug!("Stopped all audio from tray menu");
