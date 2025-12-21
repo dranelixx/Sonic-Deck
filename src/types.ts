@@ -54,27 +54,7 @@ export interface SoundLibrary {
 // ============================================================================
 // Component Props Types
 // ============================================================================
-
-export interface DashboardProps {
-  devices: AudioDevice[];
-  settings: AppSettings | null;
-  soundLibrary: SoundLibrary;
-  refreshDevices: () => Promise<void>;
-  refreshSounds: () => Promise<void>;
-  saveSettings: (settings: AppSettings) => Promise<void>;
-  device1: string;
-  device2: string;
-  setDevice1: (id: string) => void;
-  setDevice2: (id: string) => void;
-}
-
-export interface SettingsProps {
-  devices: AudioDevice[];
-  settings: AppSettings | null;
-  refreshDevices: () => Promise<void>;
-  reloadSettings: () => Promise<void>;
-  saveSettings: (settings: AppSettings) => Promise<void>;
-}
+// (Removed DashboardProps and SettingsProps - now using Context API)
 
 // ============================================================================
 // Hotkey Types

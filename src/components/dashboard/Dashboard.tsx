@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { DashboardProps, Sound } from "../../types";
+import { Sound } from "../../types";
 import { ANIMATION_DURATIONS } from "../../constants";
 import CategoryTabs from "../categories/CategoryTabs";
 import DashboardHeader from "./DashboardHeader";
@@ -12,17 +12,27 @@ import TrimEditor from "../modals/TrimEditor";
 import { useAudioPlayback } from "../../hooks/useAudioPlayback";
 import { useFileDrop } from "../../hooks/useFileDrop";
 import { useHotkeyMappings } from "../../hooks/useHotkeyMappings";
+import { useAudio } from "../../contexts/AudioContext";
+import { useSettings } from "../../contexts/SettingsContext";
+import { useSoundLibrary } from "../../contexts/SoundLibraryContext";
+
+interface DashboardProps {
+  device1: string;
+  device2: string;
+  setDevice1: (id: string) => void;
+  setDevice2: (id: string) => void;
+}
 
 export default function Dashboard({
-  devices,
-  settings,
-  soundLibrary,
-  refreshSounds,
   device1,
   device2,
   setDevice1,
   setDevice2,
 }: DashboardProps) {
+  // Contexts
+  const { devices } = useAudio();
+  const { settings } = useSettings();
+  const { soundLibrary, refreshSounds } = useSoundLibrary();
   const [volume, setVolume] = useState<number>(0.5);
   const [hasLoadedSettings, setHasLoadedSettings] = useState<boolean>(false);
 

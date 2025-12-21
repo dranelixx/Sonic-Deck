@@ -1,14 +1,18 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { AppSettings, SettingsProps } from "../../types";
+import { AppSettings } from "../../types";
+import { useAudio } from "../../contexts/AudioContext";
+import { useSettings as useSettingsContext } from "../../contexts/SettingsContext";
 
-export default function Settings({
-  devices,
-  settings: initialSettings,
-  refreshDevices,
-  reloadSettings,
-  saveSettings: saveSettingsToApp,
-}: SettingsProps) {
+export default function Settings() {
+  // Contexts
+  const { devices, refreshDevices } = useAudio();
+  const {
+    settings: contextSettings,
+    saveSettings: saveSettingsToContext,
+    reloadSettings,
+  } = useSettingsContext();
+
   const [settings, setSettings] = useState<AppSettings>({
     monitor_device_id: null,
     broadcast_device_id: null,
@@ -37,24 +41,12 @@ export default function Settings({
     getSettingsPath();
   }, []);
 
-  // Auto-refresh devices in background when Settings page is opened
+  // Update local state when context settings change
   useEffect(() => {
-    const autoRefresh = async () => {
-      try {
-        await refreshDevices();
-      } catch (error) {
-        console.error("Background device refresh failed:", error);
-      }
-    };
-    autoRefresh();
-  }, []);
-
-  // Update local state when props change
-  useEffect(() => {
-    if (initialSettings) {
-      setSettings(initialSettings);
+    if (contextSettings) {
+      setSettings(contextSettings);
     }
-  }, [initialSettings]);
+  }, [contextSettings]);
 
   const handleRefreshDevices = async () => {
     try {
@@ -74,7 +66,7 @@ export default function Settings({
     try {
       setIsSaving(true);
       setStatus("");
-      await saveSettingsToApp(settings);
+      await saveSettingsToContext(settings);
       setIsSaving(false);
       setStatus("Settings saved successfully! ✓");
       setTimeout(() => setStatus(""), 3000);

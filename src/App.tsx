@@ -1,49 +1,21 @@
 import { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import Dashboard from "./components/dashboard/Dashboard";
 import Settings from "./components/settings/Settings";
 import ErrorBoundary from "./components/common/ErrorBoundary";
-import { AudioDevice, AppSettings, SoundLibrary } from "./types";
+import { AudioProvider } from "./contexts/AudioContext";
+import { SettingsProvider, useSettings } from "./contexts/SettingsContext";
+import { SoundLibraryProvider } from "./contexts/SoundLibraryContext";
 
 type View = "dashboard" | "settings";
 
-function App() {
+function AppContent() {
   const [currentView, setCurrentView] = useState<View>("dashboard");
-
-  // Shared state - loaded once and persisted across view changes
-  const [devices, setDevices] = useState<AudioDevice[]>([]);
-  const [settings, setSettings] = useState<AppSettings | null>(null);
-  const [soundLibrary, setSoundLibrary] = useState<SoundLibrary>({
-    categories: [],
-    sounds: [],
-  });
-  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const { settings } = useSettings();
 
   // Dashboard-specific state that persists across view changes
   const [dashboardDevice1, setDashboardDevice1] = useState<string>("");
   const [dashboardDevice2, setDashboardDevice2] = useState<string>("");
-
-  // Load devices, settings, and sounds once on app mount
-  useEffect(() => {
-    const initialize = async () => {
-      try {
-        const [deviceList, loadedSettings, loadedSounds] = await Promise.all([
-          invoke<AudioDevice[]>("list_audio_devices"),
-          invoke<AppSettings>("load_settings"),
-          invoke<SoundLibrary>("load_sounds"),
-        ]);
-        setDevices(deviceList);
-        setSettings(loadedSettings);
-        setSoundLibrary(loadedSounds);
-        setIsInitialized(true);
-      } catch (error) {
-        console.error("Failed to initialize app:", error);
-        setIsInitialized(true); // Still mark as initialized to show UI
-      }
-    };
-    initialize();
-  }, []);
 
   // Handle window close event based on minimize_to_tray setting
   useEffect(() => {
@@ -78,46 +50,6 @@ function App() {
       unlisten.then((fn) => fn());
     };
   }, [settings?.minimize_to_tray]);
-
-  const refreshDevices = async () => {
-    try {
-      const deviceList = await invoke<AudioDevice[]>("list_audio_devices");
-      setDevices(deviceList);
-    } catch (error) {
-      console.error("Failed to refresh devices:", error);
-      throw error;
-    }
-  };
-
-  const refreshSounds = async () => {
-    try {
-      const loadedSounds = await invoke<SoundLibrary>("load_sounds");
-      setSoundLibrary(loadedSounds);
-    } catch (error) {
-      console.error("Failed to refresh sounds:", error);
-      throw error;
-    }
-  };
-
-  const reloadSettings = async () => {
-    try {
-      const loadedSettings = await invoke<AppSettings>("load_settings");
-      setSettings(loadedSettings);
-    } catch (error) {
-      console.error("Failed to reload settings:", error);
-      throw error;
-    }
-  };
-
-  const saveSettings = async (newSettings: AppSettings) => {
-    try {
-      await invoke("save_settings", { settings: newSettings });
-      setSettings(newSettings);
-    } catch (error) {
-      console.error("Failed to save settings:", error);
-      throw error;
-    }
-  };
 
   return (
     <div className="w-full h-full bg-discord-darkest flex">
@@ -163,32 +95,30 @@ function App() {
       {/* Main Content Area */}
       <div className="flex-1 relative">
         <ErrorBoundary>
-          {isInitialized && currentView === "dashboard" && (
+          {currentView === "dashboard" && (
             <Dashboard
-              devices={devices}
-              settings={settings}
-              soundLibrary={soundLibrary}
-              refreshDevices={refreshDevices}
-              refreshSounds={refreshSounds}
-              saveSettings={saveSettings}
               device1={dashboardDevice1}
               device2={dashboardDevice2}
               setDevice1={setDashboardDevice1}
               setDevice2={setDashboardDevice2}
             />
           )}
-          {isInitialized && currentView === "settings" && (
-            <Settings
-              devices={devices}
-              settings={settings}
-              refreshDevices={refreshDevices}
-              reloadSettings={reloadSettings}
-              saveSettings={saveSettings}
-            />
-          )}
+          {currentView === "settings" && <Settings />}
         </ErrorBoundary>
       </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AudioProvider>
+      <SettingsProvider>
+        <SoundLibraryProvider>
+          <AppContent />
+        </SoundLibraryProvider>
+      </SettingsProvider>
+    </AudioProvider>
   );
 }
 
