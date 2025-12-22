@@ -1,11 +1,14 @@
 //! Sound library and category management commands
 
 use crate::sounds::{self, Category, CategoryId, Sound, SoundId, SoundLibrary};
+use crate::AppState;
+use tauri::State;
 
-/// Load the sound library
+/// Load the sound library from in-memory state
 #[tauri::command]
-pub fn load_sounds(app_handle: tauri::AppHandle) -> Result<SoundLibrary, String> {
-    sounds::load(&app_handle)
+pub fn load_sounds(state: State<'_, AppState>) -> Result<SoundLibrary, String> {
+    let library = state.read_sounds();
+    Ok(library.clone())
 }
 
 /// Add a new sound to the library
@@ -16,11 +19,16 @@ pub fn add_sound(
     category_id: CategoryId,
     icon: Option<String>,
     volume: Option<f32>,
+    state: State<'_, AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<Sound, String> {
-    let mut library = sounds::load(&app_handle)?;
+    let mut library = {
+        let current = state.read_sounds();
+        current.clone()
+    };
+
     let sound = sounds::add_sound(&mut library, name, file_path, category_id, icon, volume);
-    sounds::save(&library, &app_handle)?;
+    state.update_and_save_sounds(&app_handle, library)?;
     Ok(sound)
 }
 
@@ -36,9 +44,14 @@ pub fn update_sound(
     volume: Option<f32>,
     trim_start_ms: Option<u64>,
     trim_end_ms: Option<u64>,
+    state: State<'_, AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<Sound, String> {
-    let mut library = sounds::load(&app_handle)?;
+    let mut library = {
+        let current = state.read_sounds();
+        current.clone()
+    };
+
     // Always update all fields when editing (simpler API)
     let sound = sounds::update_sound(
         &mut library,
@@ -53,14 +66,21 @@ pub fn update_sound(
         Some(trim_end_ms),   // Update trim_end_ms
     )?;
 
-    sounds::save(&library, &app_handle)?;
+    state.update_and_save_sounds(&app_handle, library)?;
     Ok(sound)
 }
 
 /// Toggle favorite status of a sound
 #[tauri::command]
-pub fn toggle_favorite(sound_id: SoundId, app_handle: tauri::AppHandle) -> Result<Sound, String> {
-    let mut library = sounds::load(&app_handle)?;
+pub fn toggle_favorite(
+    sound_id: SoundId,
+    state: State<'_, AppState>,
+    app_handle: tauri::AppHandle,
+) -> Result<Sound, String> {
+    let mut library = {
+        let current = state.read_sounds();
+        current.clone()
+    };
 
     // Find the sound and toggle is_favorite
     let sound = library
@@ -72,16 +92,24 @@ pub fn toggle_favorite(sound_id: SoundId, app_handle: tauri::AppHandle) -> Resul
     sound.is_favorite = !sound.is_favorite;
     let updated_sound = sound.clone();
 
-    sounds::save(&library, &app_handle)?;
+    state.update_and_save_sounds(&app_handle, library)?;
     Ok(updated_sound)
 }
 
 /// Delete a sound from the library
 #[tauri::command]
-pub fn delete_sound(sound_id: SoundId, app_handle: tauri::AppHandle) -> Result<(), String> {
-    let mut library = sounds::load(&app_handle)?;
+pub fn delete_sound(
+    sound_id: SoundId,
+    state: State<'_, AppState>,
+    app_handle: tauri::AppHandle,
+) -> Result<(), String> {
+    let mut library = {
+        let current = state.read_sounds();
+        current.clone()
+    };
+
     sounds::delete_sound(&mut library, &sound_id)?;
-    sounds::save(&library, &app_handle)?;
+    state.update_and_save_sounds(&app_handle, library)?;
     Ok(())
 }
 
@@ -90,11 +118,16 @@ pub fn delete_sound(sound_id: SoundId, app_handle: tauri::AppHandle) -> Result<(
 pub fn add_category(
     name: String,
     icon: Option<String>,
+    state: State<'_, AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<Category, String> {
-    let mut library = sounds::load(&app_handle)?;
+    let mut library = {
+        let current = state.read_sounds();
+        current.clone()
+    };
+
     let category = sounds::add_category(&mut library, name, icon);
-    sounds::save(&library, &app_handle)?;
+    state.update_and_save_sounds(&app_handle, library)?;
     Ok(category)
 }
 
@@ -105,11 +138,16 @@ pub fn update_category(
     name: Option<String>,
     icon: Option<Option<String>>,
     sort_order: Option<i32>,
+    state: State<'_, AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<Category, String> {
-    let mut library = sounds::load(&app_handle)?;
+    let mut library = {
+        let current = state.read_sounds();
+        current.clone()
+    };
+
     let category = sounds::update_category(&mut library, &category_id, name, icon, sort_order)?;
-    sounds::save(&library, &app_handle)?;
+    state.update_and_save_sounds(&app_handle, library)?;
     Ok(category)
 }
 
@@ -118,10 +156,15 @@ pub fn update_category(
 pub fn delete_category(
     category_id: CategoryId,
     move_sounds_to: Option<CategoryId>,
+    state: State<'_, AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
-    let mut library = sounds::load(&app_handle)?;
+    let mut library = {
+        let current = state.read_sounds();
+        current.clone()
+    };
+
     sounds::delete_category(&mut library, &category_id, move_sounds_to)?;
-    sounds::save(&library, &app_handle)?;
+    state.update_and_save_sounds(&app_handle, library)?;
     Ok(())
 }

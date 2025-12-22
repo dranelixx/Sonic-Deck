@@ -7,13 +7,16 @@ mod commands;
 mod hotkeys;
 mod settings;
 mod sounds;
+mod state;
 mod tray;
 
+use tauri::Manager;
 use tracing::{error, info};
 
 pub use audio::{AudioDevice, AudioManager, CacheStats, DeviceId, WaveformData};
 pub use settings::AppSettings;
 pub use sounds::{Category, CategoryId, Sound, SoundId, SoundLibrary};
+pub use state::AppState;
 // ============================================================================
 // GLOBAL SHORTCUT HANDLING
 // ============================================================================
@@ -81,20 +84,16 @@ fn handle_global_shortcut(
 
     tracing::info!("Processing hotkey press: {}", normalized_hotkey);
 
-    // Load hotkey mappings
-    let mappings = match hotkeys::load(app) {
-        Ok(m) => {
-            tracing::info!("Loaded {} hotkey mappings", m.mappings.len());
-            for (key, sound_id) in &m.mappings {
-                tracing::debug!("  Mapping: '{}' -> {:?}", key, sound_id);
-            }
-            m
-        }
-        Err(e) => {
-            tracing::error!("Failed to load hotkey mappings: {}", e);
-            return;
-        }
-    };
+    // Get app state (zero disk I/O)
+    use tauri::Manager as TauriManager;
+    let app_state = app.state::<AppState>();
+
+    // Read hotkey mappings from in-memory state
+    let mappings = app_state.read_hotkeys();
+    tracing::debug!(
+        "Read {} hotkey mappings from memory",
+        mappings.mappings.len()
+    );
 
     // Get sound ID for this hotkey using the normalized string
     let sound_id = match hotkeys::get_sound_id(&mappings, &normalized_hotkey) {
@@ -113,19 +112,14 @@ fn handle_global_shortcut(
             return;
         }
     };
+    drop(mappings); // Release read lock early
 
-    // Load sound library
-    let library = match sounds::load(app) {
-        Ok(l) => l,
-        Err(e) => {
-            tracing::error!("Failed to load sound library: {}", e);
-            return;
-        }
-    };
+    // Read sound library from in-memory state
+    let library = app_state.read_sounds();
 
     // Find the sound
     let sound = match library.sounds.iter().find(|s| s.id == sound_id) {
-        Some(s) => s,
+        Some(s) => s.clone(),
         None => {
             tracing::warn!(
                 "Sound not found for hotkey: {} -> {:?}",
@@ -135,27 +129,26 @@ fn handle_global_shortcut(
             return;
         }
     };
+    drop(library); // Release read lock early
 
-    // Load settings
-    let settings = match settings::load(app) {
-        Ok(s) => s,
-        Err(e) => {
-            tracing::error!("Failed to load settings: {}", e);
-            return;
-        }
-    };
+    // Read settings from in-memory state
+    let settings = app_state.read_settings();
+    let monitor_device = settings.monitor_device_id.clone();
+    let broadcast_device = settings.broadcast_device_id.clone();
+    let default_volume = settings.default_volume;
+    drop(settings); // Release read lock early
 
     // Get device IDs
-    let device1 = match settings.monitor_device_id {
-        Some(ref id) => id.clone(),
+    let device1 = match monitor_device {
+        Some(id) => id,
         None => {
             tracing::warn!("No monitor device configured");
             return;
         }
     };
 
-    let device2 = match settings.broadcast_device_id {
-        Some(ref id) => id.clone(),
+    let device2 = match broadcast_device {
+        Some(id) => id,
         None => {
             tracing::warn!("No broadcast device configured");
             return;
@@ -163,10 +156,9 @@ fn handle_global_shortcut(
     };
 
     // Determine volume
-    let volume = sound.volume.unwrap_or(settings.default_volume);
+    let volume = sound.volume.unwrap_or(default_volume);
 
     // Get audio manager from state
-    use tauri::Manager as TauriManager;
     let manager = app.state::<AudioManager>();
 
     // Trigger playback
@@ -268,7 +260,6 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
-        .manage(AudioManager::new())
         .invoke_handler(tauri::generate_handler![
             commands::list_audio_devices,
             commands::play_dual_output,
@@ -301,6 +292,16 @@ pub fn run() {
             commands::delete_category,
         ])
         .setup(|app| {
+            // Initialize app state (load all data from disk once at startup)
+            let app_state = AppState::load(app.handle())?;
+
+            // Initialize audio manager
+            let audio_manager = AudioManager::new();
+
+            // Register state managers
+            app.manage(app_state);
+            app.manage(audio_manager);
+
             #[cfg(desktop)]
             {
                 use tauri::Manager;
@@ -314,10 +315,14 @@ pub fn run() {
                     ))
                     .map_err(|e| format!("Failed to initialize autostart plugin: {}", e))?;
 
-                // Apply saved autostart setting
-                let settings = settings::load(app.handle()).unwrap_or_default();
+                // Apply saved autostart setting from in-memory state
+                let state = app.state::<AppState>();
+                let settings = state.read_settings();
+                let autostart_enabled = settings.autostart_enabled;
+                drop(settings);
+
                 let autostart_manager = app.autolaunch();
-                if settings.autostart_enabled {
+                if autostart_enabled {
                     let _ = autostart_manager.enable();
                 } else {
                     let _ = autostart_manager.disable();
@@ -349,9 +354,13 @@ pub fn run() {
                     error!("Failed to initialize system tray: {}", e);
                 }
 
-                // Optionally start minimized
-                let settings = settings::load(app.handle()).unwrap_or_default();
-                if settings.start_minimized {
+                // Optionally start minimized (read from in-memory state)
+                let state = app.state::<AppState>();
+                let settings = state.read_settings();
+                let start_minimized = settings.start_minimized;
+                drop(settings);
+
+                if start_minimized {
                     if let Some(window) = app.get_webview_window("main") {
                         let _ = window.hide();
                         info!("Started minimized to tray");

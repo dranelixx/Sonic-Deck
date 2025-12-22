@@ -2,20 +2,24 @@
 
 use crate::hotkeys;
 use crate::sounds::SoundId;
+use crate::AppState;
+use tauri::State;
 
-/// Load hotkey mappings from disk
+/// Load hotkey mappings from in-memory state
 #[tauri::command]
-pub fn load_hotkeys(app_handle: tauri::AppHandle) -> Result<hotkeys::HotkeyMappings, String> {
-    hotkeys::load(&app_handle)
+pub fn load_hotkeys(state: State<'_, AppState>) -> Result<hotkeys::HotkeyMappings, String> {
+    let mappings = state.read_hotkeys();
+    Ok(mappings.clone())
 }
 
-/// Save hotkey mappings to disk
+/// Save hotkey mappings to state and disk
 #[tauri::command]
 pub fn save_hotkeys(
     mappings: hotkeys::HotkeyMappings,
+    state: State<'_, AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
-    hotkeys::save(&mappings, &app_handle)
+    state.update_and_save_hotkeys(&app_handle, mappings)
 }
 
 /// Register a global hotkey for a sound
@@ -23,12 +27,16 @@ pub fn save_hotkeys(
 pub fn register_hotkey(
     hotkey: String,
     sound_id: SoundId,
+    state: State<'_, AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
     use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
-    // Load current mappings
-    let mut mappings = hotkeys::load(&app_handle)?;
+    // Read current mappings from state
+    let mut mappings = {
+        let current = state.read_hotkeys();
+        current.clone()
+    };
 
     // Add mapping (checks for duplicates)
     hotkeys::add_mapping(&mut mappings, hotkey.clone(), sound_id.clone())?;
@@ -45,8 +53,8 @@ pub fn register_hotkey(
         .register(shortcut)
         .map_err(|e| format!("Failed to register hotkey: {}", e))?;
 
-    // Save updated mappings
-    hotkeys::save(&mappings, &app_handle)?;
+    // Update state and persist to disk
+    state.update_and_save_hotkeys(&app_handle, mappings)?;
 
     tracing::info!(
         "Successfully registered global hotkey: {} -> {:?}",
@@ -58,11 +66,18 @@ pub fn register_hotkey(
 
 /// Unregister a global hotkey
 #[tauri::command]
-pub fn unregister_hotkey(hotkey: String, app_handle: tauri::AppHandle) -> Result<(), String> {
+pub fn unregister_hotkey(
+    hotkey: String,
+    state: State<'_, AppState>,
+    app_handle: tauri::AppHandle,
+) -> Result<(), String> {
     use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
-    // Load current mappings
-    let mut mappings = hotkeys::load(&app_handle)?;
+    // Read current mappings from state
+    let mut mappings = {
+        let current = state.read_hotkeys();
+        current.clone()
+    };
 
     // Remove mapping
     hotkeys::remove_mapping(&mut mappings, &hotkey)?;
@@ -76,8 +91,8 @@ pub fn unregister_hotkey(hotkey: String, app_handle: tauri::AppHandle) -> Result
         .unregister(shortcut)
         .map_err(|e| format!("Failed to unregister hotkey: {}", e))?;
 
-    // Save updated mappings
-    hotkeys::save(&mappings, &app_handle)?;
+    // Update state and persist to disk
+    state.update_and_save_hotkeys(&app_handle, mappings)?;
 
     tracing::info!("Unregistered global hotkey: {}", hotkey);
     Ok(())

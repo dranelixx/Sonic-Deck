@@ -1,17 +1,24 @@
 //! Application settings and autostart management commands
 
 use crate::settings::{self, AppSettings};
+use crate::AppState;
+use tauri::State;
 
-/// Load application settings from disk
+/// Load application settings from in-memory state
 #[tauri::command]
-pub fn load_settings(app_handle: tauri::AppHandle) -> Result<AppSettings, String> {
-    settings::load(&app_handle)
+pub fn load_settings(state: State<'_, AppState>) -> Result<AppSettings, String> {
+    let settings = state.read_settings();
+    Ok(settings.clone())
 }
 
-/// Save application settings to disk
+/// Save application settings to state and disk
 #[tauri::command]
-pub fn save_settings(settings: AppSettings, app_handle: tauri::AppHandle) -> Result<(), String> {
-    settings::save(&settings, &app_handle)
+pub fn save_settings(
+    settings: AppSettings,
+    state: State<'_, AppState>,
+    app_handle: tauri::AppHandle,
+) -> Result<(), String> {
+    state.update_and_save_settings(&app_handle, settings)
 }
 
 /// Get the settings file path (for debugging/info)
