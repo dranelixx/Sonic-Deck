@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Create a report to help us improve SonicDeck
+about: Create a report to help us improve Sonic Deck
 title: '[BUG] '
 labels: bug
 assignees: ''
@@ -24,7 +24,7 @@ If applicable, add screenshots to help explain your problem.
 
 **System Information:**
  - OS: [e.g. Windows 11]
- - SonicDeck Version: [e.g. v0.6.0-beta]
+ - Sonic Deck Version: [e.g. v0.6.0-beta]
  - Audio Devices: [Your monitor and broadcast audio devices]
 
 **Log Files**

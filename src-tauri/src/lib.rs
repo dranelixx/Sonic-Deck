@@ -1,4 +1,4 @@
-//! SonicDeck - High-performance Desktop Soundboard
+//! Sonic Deck - High-performance Desktop Soundboard
 //!
 //! Rust backend with dual-output audio routing (cpal-based implementation).
 

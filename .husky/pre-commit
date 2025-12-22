@@ -1,4 +1,4 @@
-echo "🚀 Running pre-commit checks for SonicDeck..."
+echo "🚀 Running pre-commit checks for Sonic Deck..."
 
 # TypeScript type check
 echo "🔍 TypeScript compilation check..."

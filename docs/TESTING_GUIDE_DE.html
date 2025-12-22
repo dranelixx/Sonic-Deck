@@ -1,931 +1,1196 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SonicDeck - Tester Guide</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sonic Deck - Tester Guide</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #dcddde;
-            background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
-            padding: 20px;
-        }
-        
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #dcddde;
+        background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: #2b2d31;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #5865f2 0%, #4752c4 100%);
+        padding: 40px 30px;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        color: white;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .header p {
+        font-size: 1.2em;
+        color: #e3e5e8;
+        opacity: 0.95;
+      }
+
+      .content {
+        padding: 40px 30px;
+      }
+
+      .section {
+        margin-bottom: 20px;
+      }
+
+      .section h2 {
+        color: #5865f2;
+        font-size: 1.8em;
+        margin-bottom: 20px;
+      }
+
+      .section h3 {
+        color: #00b0f4;
+        font-size: 1.3em;
+        margin: 25px 0 15px 0;
+      }
+
+      .section p {
+        margin-bottom: 15px;
+        color: #b9bbbe;
+      }
+
+      .highlight {
+        background: #404249;
+        padding: 15px 20px;
+        border-radius: 8px;
+        border-left: 4px solid #5865f2;
+        margin: 20px 0;
+      }
+
+      .highlight strong {
+        color: #5865f2;
+      }
+
+      .steps {
+        list-style: none;
+        counter-reset: step-counter;
+      }
+
+      .steps li {
+        counter-increment: step-counter;
+        margin-bottom: 25px;
+        padding-left: 50px;
+        position: relative;
+      }
+
+      .steps li::before {
+        content: counter(step-counter);
+        position: absolute;
+        left: 0;
+        top: 0;
+        background: #5865f2;
+        color: white;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2em;
+      }
+
+      .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 15px;
+        margin: 20px 0;
+      }
+
+      .feature-card {
+        background: #313338;
+        padding: 18px;
+        border-radius: 8px;
+        border: 1px solid #404249;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+        min-height: 100px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(88, 101, 242, 0.2);
+      }
+
+      .feature-card h4 {
+        color: #5865f2;
+        margin-bottom: 10px;
+        font-size: 1.1em;
+      }
+
+      .feature-card p {
+        font-size: 0.95em;
+        margin: 0;
+      }
+
+      .warning {
+        background: #faa81a;
+        color: #2b2d31;
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+        font-weight: 500;
+      }
+
+      .success {
+        background: #43b581;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+      }
+
+      .code {
+        background: #1e1f22;
+        padding: 15px;
+        border-radius: 6px;
+        font-family: "Courier New", monospace;
+        color: #43b581;
+        margin: 15px 0;
+        overflow-x: auto;
+      }
+
+      .tips {
+        background: #313338;
+        padding: 20px;
+        border-radius: 8px;
+        border-left: 4px solid #43b581;
+        margin: 20px 0;
+      }
+
+      .tips h4 {
+        color: #43b581;
+        margin-bottom: 10px;
+      }
+
+      ul {
+        margin-left: 20px;
+        margin-bottom: 15px;
+      }
+
+      ul li {
+        margin-bottom: 8px;
+        color: #b9bbbe;
+      }
+
+      a {
+        color: #00b0f4;
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      .footer {
+        background: #1e1f22;
+        padding: 20px 30px;
+        text-align: center;
+        color: #72767d;
+        font-size: 0.9em;
+      }
+
+      .emoji {
+        font-size: 1.3em;
+        margin-right: 8px;
+      }
+
+      .accordion {
+        margin: 20px 0;
+      }
+
+      .accordion-item {
+        background: #313338;
+        border: 1px solid #404249;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        overflow: hidden;
+      }
+
+      .accordion-header {
+        padding: 15px 20px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #2b2d31;
+        transition: all 0.2s;
+        border-left: 3px solid transparent;
+      }
+
+      .accordion-header:hover {
+        background: #313338;
+        border-left-color: #5865f2;
+      }
+
+      /* Nested accordion styling */
+      .accordion-content .accordion {
+        margin: 0;
+      }
+
+      .accordion-content .accordion-item {
+        background: #1e1f22;
+        border: 1px solid #2b2d31;
+        margin-bottom: 10px;
+      }
+
+      .accordion-content .accordion-header {
+        background: #2b2d31;
+        padding: 12px 15px;
+      }
+
+      .accordion-content .accordion-header:hover {
+        background: #313338;
+      }
+
+      .accordion-header h2 {
+        margin: 0;
+        color: #dcddde;
+        font-size: 1.3em;
+        font-weight: 500;
+      }
+
+      .accordion-header h3 {
+        margin: 0;
+        color: #dcddde;
+        font-size: 1.1em;
+        font-weight: 500;
+      }
+
+      .accordion-icon {
+        font-size: 1.2em;
+        color: #72767d;
+        transition: transform 0.3s;
+      }
+
+      .accordion-header:hover .accordion-icon {
+        color: #5865f2;
+      }
+
+      .accordion-icon.active {
+        transform: rotate(180deg);
+        color: #5865f2;
+      }
+
+      .accordion-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+        padding: 0 20px;
+      }
+
+      .accordion-content.active {
+        max-height: 3000px;
+        padding: 20px;
+      }
+
+      @media (max-width: 768px) {
         .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: #2b2d31;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-            overflow: hidden;
+          margin: 0;
+          border-radius: 0;
         }
-        
-        .header {
-            background: linear-gradient(135deg, #5865f2 0%, #4752c4 100%);
-            padding: 40px 30px;
-            text-align: center;
-        }
-        
+
         .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+          font-size: 2em;
         }
-        
-        .header p {
-            font-size: 1.2em;
-            color: #e3e5e8;
-            opacity: 0.95;
-        }
-        
+
         .content {
-            padding: 40px 30px;
+          padding: 20px 15px;
         }
-        
-        .section {
-            margin-bottom: 20px;
-        }
-        
-        .section h2 {
-            color: #5865f2;
-            font-size: 1.8em;
-            margin-bottom: 20px;
-        }
-        
-        .section h3 {
-            color: #00b0f4;
-            font-size: 1.3em;
-            margin: 25px 0 15px 0;
-        }
-        
-        .section p {
-            margin-bottom: 15px;
-            color: #b9bbbe;
-        }
-        
-        .highlight {
-            background: #404249;
-            padding: 15px 20px;
-            border-radius: 8px;
-            border-left: 4px solid #5865f2;
-            margin: 20px 0;
-        }
-        
-        .highlight strong {
-            color: #5865f2;
-        }
-        
-        .steps {
-            list-style: none;
-            counter-reset: step-counter;
-        }
-        
-        .steps li {
-            counter-increment: step-counter;
-            margin-bottom: 25px;
-            padding-left: 50px;
-            position: relative;
-        }
-        
-        .steps li::before {
-            content: counter(step-counter);
-            position: absolute;
-            left: 0;
-            top: 0;
-            background: #5865f2;
-            color: white;
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 1.2em;
-        }
-        
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-        
-        .feature-card {
-            background: #313338;
-            padding: 18px;
-            border-radius: 8px;
-            border: 1px solid #404249;
-            transition: transform 0.2s, box-shadow 0.2s;
-            min-height: 100px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 16px rgba(88, 101, 242, 0.2);
-        }
-        
-        .feature-card h4 {
-            color: #5865f2;
-            margin-bottom: 10px;
-            font-size: 1.1em;
-        }
-        
-        .feature-card p {
-            font-size: 0.95em;
-            margin: 0;
-        }
-        
-        .warning {
-            background: #faa81a;
-            color: #2b2d31;
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-            font-weight: 500;
-        }
-        
-        .success {
-            background: #43b581;
-            color: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-        }
-        
-        .code {
-            background: #1e1f22;
-            padding: 15px;
-            border-radius: 6px;
-            font-family: 'Courier New', monospace;
-            color: #43b581;
-            margin: 15px 0;
-            overflow-x: auto;
-        }
-        
-        .tips {
-            background: #313338;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 4px solid #43b581;
-            margin: 20px 0;
-        }
-        
-        .tips h4 {
-            color: #43b581;
-            margin-bottom: 10px;
-        }
-        
-        ul {
-            margin-left: 20px;
-            margin-bottom: 15px;
-        }
-        
-        ul li {
-            margin-bottom: 8px;
-            color: #b9bbbe;
-        }
-        
-        a {
-            color: #00b0f4;
-            text-decoration: none;
-        }
-        
-        a:hover {
-            text-decoration: underline;
-        }
-        
-        .footer {
-            background: #1e1f22;
-            padding: 20px 30px;
-            text-align: center;
-            color: #72767d;
-            font-size: 0.9em;
-        }
-        
-        .emoji {
-            font-size: 1.3em;
-            margin-right: 8px;
-        }
-        
-        .accordion {
-            margin: 20px 0;
-        }
-        
-        .accordion-item {
-            background: #313338;
-            border: 1px solid #404249;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            overflow: hidden;
-        }
-        
-        .accordion-header {
-            padding: 15px 20px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #2b2d31;
-            transition: all 0.2s;
-            border-left: 3px solid transparent;
-        }
-        
-        .accordion-header:hover {
-            background: #313338;
-            border-left-color: #5865f2;
-        }
-        
-        /* Nested accordion styling */
-        .accordion-content .accordion {
-            margin: 0;
-        }
-        
-        .accordion-content .accordion-item {
-            background: #1e1f22;
-            border: 1px solid #2b2d31;
-            margin-bottom: 10px;
-        }
-        
-        .accordion-content .accordion-header {
-            background: #2b2d31;
-            padding: 12px 15px;
-        }
-        
-        .accordion-content .accordion-header:hover {
-            background: #313338;
-        }
-        
-        .accordion-header h2 {
-            margin: 0;
-            color: #dcddde;
-            font-size: 1.3em;
-            font-weight: 500;
-        }
-        
-        .accordion-header h3 {
-            margin: 0;
-            color: #dcddde;
-            font-size: 1.1em;
-            font-weight: 500;
-        }
-        
-        .accordion-icon {
-            font-size: 1.2em;
-            color: #72767d;
-            transition: transform 0.3s;
-        }
-        
-        .accordion-header:hover .accordion-icon {
-            color: #5865f2;
-        }
-        
-        .accordion-icon.active {
-            transform: rotate(180deg);
-            color: #5865f2;
-        }
-        
-        .accordion-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out;
-            padding: 0 20px;
-        }
-        
-        .accordion-content.active {
-            max-height: 3000px;
-            padding: 20px;
-        }
-        
-        @media (max-width: 768px) {
-            .container {
-                margin: 0;
-                border-radius: 0;
-            }
-            
-            .header h1 {
-                font-size: 2em;
-            }
-            
-            .content {
-                padding: 20px 15px;
-            }
-        }
+      }
 
-        /* Collapsible Image Toggle */
-        details.image-toggle {
-            margin-top: 10px;
-            background: #2b2d31;
-            border: 1px solid #404249;
-            border-radius: 6px;
-            overflow: hidden;
-        }
-        details.image-toggle summary {
-            padding: 10px 15px;
-            cursor: pointer;
-            color: #00b0f4;
-            font-weight: 500;
-            user-select: none;
-            display: flex;
-            align-items: center;
-            background: rgba(0, 0, 0, 0.1);
-        }
-        details.image-toggle summary:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-        details.image-toggle summary::-webkit-details-marker {
-            display: none;
-        }
-        details.image-toggle summary::before {
-            content: '📸';
-            margin-right: 10px;
-            font-size: 1.1em;
-        }
-        details.image-toggle img {
-            display: block;
-            width: 100%;
-            border-top: 1px solid #404249;
-            padding: 0;
-        }
+      /* Collapsible Image Toggle */
+      details.image-toggle {
+        margin-top: 10px;
+        background: #2b2d31;
+        border: 1px solid #404249;
+        border-radius: 6px;
+        overflow: hidden;
+      }
+      details.image-toggle summary {
+        padding: 10px 15px;
+        cursor: pointer;
+        color: #00b0f4;
+        font-weight: 500;
+        user-select: none;
+        display: flex;
+        align-items: center;
+        background: rgba(0, 0, 0, 0.1);
+      }
+      details.image-toggle summary:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+      details.image-toggle summary::-webkit-details-marker {
+        display: none;
+      }
+      details.image-toggle summary::before {
+        content: "📸";
+        margin-right: 10px;
+        font-size: 1.1em;
+      }
+      details.image-toggle img {
+        display: block;
+        width: 100%;
+        border-top: 1px solid #404249;
+        padding: 0;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <div class="header">
-            <h1>🎵 SonicDeck - Beta Testing Guide</h1>
-            <p>High-Performance Desktop Soundboard für Streamer & Content Creator</p>
+      <div class="header">
+        <h1>🎵 Sonic Deck - Beta Testing Guide</h1>
+        <p>
+          High-Performance Desktop Soundboard für Streamer & Content Creator
+        </p>
+      </div>
+
+      <div class="content">
+        <!-- Was ist Sonic Deck -->
+        <div class="section">
+          <h2><span class="emoji">🎯</span>Was ist Sonic Deck?</h2>
+          <p>
+            Sonic Deck ist eine <strong>Desktop-Soundboard-Anwendung</strong>,
+            die speziell für Streamer, Gamer und Content Creator entwickelt
+            wurde. Die App ermöglicht es dir, Sounds gleichzeitig auf
+            <strong>zwei verschiedene Audio-Ausgänge</strong> zu spielen (z.B.
+            deine Kopfhörer UND deinen Stream).
+          </p>
+
+          <div class="features">
+            <div class="feature-card">
+              <h4>🎧 Dual-Audio Routing</h4>
+              <p>
+                Spiele Sounds gleichzeitig auf zwei Geräte (Headset + Virtual
+                Audio Cable)
+              </p>
+            </div>
+            <div class="feature-card">
+              <h4>📁 Sound-Bibliothek</h4>
+              <p>
+                Organisiere deine Sounds in Kategorien mit Drag & Drop Import
+              </p>
+            </div>
+            <div class="feature-card">
+              <h4>✂️ Audio-Trimming</h4>
+              <p>Schneide Sounds zu ohne die Original-Datei zu verändern</p>
+            </div>
+            <div class="feature-card">
+              <h4>⚡ Blitzschnell</h4>
+              <p>Rust-Backend für minimale Latenz und sofortige Wiedergabe</p>
+            </div>
+          </div>
         </div>
-        
-        <div class="content">
-            <!-- Was ist SonicDeck -->
-            <div class="section">
-                <h2><span class="emoji">🎯</span>Was ist SonicDeck?</h2>
-                <p>
-                    SonicDeck ist eine <strong>Desktop-Soundboard-Anwendung</strong>, die speziell für Streamer, Gamer und Content Creator entwickelt wurde. 
-                    Die App ermöglicht es dir, Sounds gleichzeitig auf <strong>zwei verschiedene Audio-Ausgänge</strong> zu spielen 
-                    (z.B. deine Kopfhörer UND deinen Stream).
-                </p>
-                
-                <div class="features">
-                    <div class="feature-card">
-                        <h4>🎧 Dual-Audio Routing</h4>
-                        <p>Spiele Sounds gleichzeitig auf zwei Geräte (Headset + Virtual Audio Cable)</p>
-                    </div>
-                    <div class="feature-card">
-                        <h4>📁 Sound-Bibliothek</h4>
-                        <p>Organisiere deine Sounds in Kategorien mit Drag & Drop Import</p>
-                    </div>
-                    <div class="feature-card">
-                        <h4>✂️ Audio-Trimming</h4>
-                        <p>Schneide Sounds zu ohne die Original-Datei zu verändern</p>
-                    </div>
-                    <div class="feature-card">
-                        <h4>⚡ Blitzschnell</h4>
-                        <p>Rust-Backend für minimale Latenz und sofortige Wiedergabe</p>
-                    </div>
-                </div>
+
+        <!-- Installation -->
+        <div class="section">
+          <div class="accordion-item">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <h2><span class="emoji">💾</span>Installation</h2>
+              <span class="accordion-icon">▼</span>
             </div>
-            
-            <!-- Installation -->
-            <div class="section">
-                <div class="accordion-item">
-                    <div class="accordion-header" onclick="toggleAccordion(this)">
-                        <h2><span class="emoji">💾</span>Installation</h2>
-                        <span class="accordion-icon">▼</span>
-                    </div>
-                    <div class="accordion-content">
-                
-                <h3>Variante 1: Setup.exe (Kleiner, 2.96 MB)</h3>
-                <ol class="steps">
-                    <li>
-                        <strong>Installer herunterladen</strong><br>
-                        Datei: <code>SonicDeck_0.1.0_x64-setup.exe</code>
-                    </li>
-                    <li>
-                        <strong>Windows SmartScreen umgehen</strong><br>
-                        Beim ersten Start zeigt Windows eine Warnung ("Windows hat diesen PC geschützt").<br>
-                        Klicke auf <strong>"Weitere Informationen"</strong> → <strong>"Trotzdem ausführen"</strong><br>
-                        <span style="color: #72767d; font-size: 0.9em;">Das ist normal bei nicht-signierten Apps</span>
-                    </li>
-                    <li>
-                        <strong>Installationsort wählen</strong><br>
-                        Standard: <code>C:\Users\[DeinName]\AppData\Local\SonicDeck</code><br>
-                        Du kannst den Pfad ändern, wenn du möchtest
-                    </li>
-                    <li>
-                        <strong>Installation abschließen</strong><br>
-                        Klicke durch den Installer → Fertig!
-                    </li>
-                </ol>
-                
-                <h3>Variante 2: MSI Installer (4.43 MB)</h3>
-                <div class="highlight">
-                    <strong>Datei:</strong> <code>SonicDeck_0.1.0_x64_en-US.msi</code><br>
-                    Funktioniert genauso wie die .exe - Doppelklick → Installation folgen.<br>
-                    <span style="color: #72767d; font-size: 0.9em;">MSI = Windows Installer Package (alternativer Format)</span>
-                </div>
-                
-                <div class="tips">
-                    <h4>💡 Was ist der Unterschied?</h4>
-                    <ul>
-                        <li><strong>.exe Setup:</strong> Kompakter (2.96 MB), modernes Installer-Format</li>
-                        <li><strong>.msi Installer:</strong> Größer (4.43 MB), unterstützt auch stille Installation über Kommandozeile</li>
-                        <li><strong>Empfehlung:</strong> Nimm einfach die .exe - beide installieren das gleiche Programm!</li>
-                    </ul>
-                </div>
-                
-                <div class="warning">
-                    <strong>⚠️ Wichtig:</strong> SonicDeck benötigt keine Admin-Rechte, aber Windows Defender oder Antivirus-Programme 
-                    könnten die App blockieren. Füge sie bei Bedarf zur Ausnahmeliste hinzu.
-                </div>
-                    </div>
-                </div>
+            <div class="accordion-content">
+              <h3>Variante 1: Setup.exe (Kleiner, 2.96 MB)</h3>
+              <ol class="steps">
+                <li>
+                  <strong>Installer herunterladen</strong><br />
+                  Datei: <code>Sonic_Deck_0.6.0_x64-setup.exe</code>
+                </li>
+                <li>
+                  <strong>Windows SmartScreen umgehen</strong><br />
+                  Beim ersten Start zeigt Windows eine Warnung ("Windows hat
+                  diesen PC geschützt").<br />
+                  Klicke auf <strong>"Weitere Informationen"</strong> →
+                  <strong>"Trotzdem ausführen"</strong><br />
+                  <span style="color: #72767d; font-size: 0.9em"
+                    >Das ist normal bei nicht-signierten Apps</span
+                  >
+                </li>
+                <li>
+                  <strong>Installationsort wählen</strong><br />
+                  Standard:
+                  <code>C:\Users\[DeinName]\AppData\Local\Sonic Deck</code
+                  ><br />
+                  Du kannst den Pfad ändern, wenn du möchtest
+                </li>
+                <li>
+                  <strong>Installation abschließen</strong><br />
+                  Klicke durch den Installer → Fertig!
+                </li>
+              </ol>
+
+              <h3>Variante 2: MSI Installer (4.43 MB)</h3>
+              <div class="highlight">
+                <strong>Datei:</strong>
+                <code>Sonic_Deck_0.6.0_x64_en-US.msi</code><br />
+                Funktioniert genauso wie die .exe - Doppelklick → Installation
+                folgen.<br />
+                <span style="color: #72767d; font-size: 0.9em"
+                  >MSI = Windows Installer Package (alternativer Format)</span
+                >
+              </div>
+
+              <div class="tips">
+                <h4>💡 Was ist der Unterschied?</h4>
+                <ul>
+                  <li>
+                    <strong>.exe Setup:</strong> Kompakter (2.96 MB), modernes
+                    Installer-Format
+                  </li>
+                  <li>
+                    <strong>.msi Installer:</strong> Größer (4.43 MB),
+                    unterstützt auch stille Installation über Kommandozeile
+                  </li>
+                  <li>
+                    <strong>Empfehlung:</strong> Nimm einfach die .exe - beide
+                    installieren das gleiche Programm!
+                  </li>
+                </ul>
+              </div>
+
+              <div class="warning">
+                <strong>⚠️ Wichtig:</strong> Sonic Deck benötigt keine
+                Admin-Rechte, aber Windows Defender oder Antivirus-Programme
+                könnten die App blockieren. Füge sie bei Bedarf zur
+                Ausnahmeliste hinzu.
+              </div>
             </div>
-            
-            <!-- Erste Schritte -->
-            <div class="section">
-                <div class="accordion-item">
-                    <div class="accordion-header" onclick="toggleAccordion(this)">
-                        <h2><span class="emoji">🚀</span>Erste Schritte</h2>
-                        <span class="accordion-icon">▼</span>
-                    </div>
-                    <div class="accordion-content">
-                
-                <h3>1. Audio-Geräte einrichten</h3>
-                <ol class="steps">
-                    <li>
-                        <strong>SonicDeck starten</strong><br>
-                        Das Hauptfenster öffnet sich mit dem Dashboard
-                    </li>
-                    <li>
-                        <strong>Zu den Einstellungen gehen</strong><br>
-                        Klicke in der Sidebar auf <strong>"Settings"</strong> (Zahnrad-Symbol)
-                    </li>
-                    <li>
-                        <strong>Ausgabegeräte wählen</strong><br>
-                        <ul>
-                            <li><strong>Monitor Output:</strong> Deine Kopfhörer/Lautsprecher (was DU hören möchtest)</li>
-                            <li><strong>Broadcast Output:</strong> Virtual Audio Cable, OBS Audio, etc. (was dein STREAM hören soll)</li>
-                        </ul>
-                    </li>
-                    <li>
-                        <strong>Lautstärke einstellen</strong><br>
-                        Setze die Default Volume auf 50% (sicherer Start-Wert)
-                    </li>
-                </ol>
-                
-                <div class="warning">
-                    <strong>🔄 Für Streamer wichtig:</strong> Ohne Virtual Audio Cable hört dein Stream die Sounds NICHT!<br>
-                    Folge der Anleitung unten, um VB-Cable einzurichten.
-                </div>
-                    </div>
-                </div>
+          </div>
+        </div>
+
+        <!-- Erste Schritte -->
+        <div class="section">
+          <div class="accordion-item">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <h2><span class="emoji">🚀</span>Erste Schritte</h2>
+              <span class="accordion-icon">▼</span>
             </div>
-            
-            <!-- Virtual Cable Setup -->
-            <div class="section">
-                <div class="accordion-item">
-                    <div class="accordion-header" onclick="toggleAccordion(this)">
-                        <h2><span class="emoji">🔌</span>Virtual Audio Cable einrichten (Für Streaming)</h2>
-                        <span class="accordion-icon">▼</span>
-                    </div>
-                    <div class="accordion-content">
-                
-                <p style="margin-bottom: 20px;">
-                    Wenn du SonicDeck für Streaming nutzen möchtest, brauchst du ein <strong>Virtual Audio Cable</strong>. 
-                    Damit können die Sounds zu deinem Stream/Discord/etc. geroutet werden.
-                </p>
-                
-                <div class="accordion">
-                    <div class="accordion-item">
-                        <div class="accordion-header" onclick="toggleAccordion(this)">
-                            <h3>Schritt 1: VB-Audio Virtual Cable installieren</h3>
-                            <span class="accordion-icon">▼</span>
-                        </div>
-                        <div class="accordion-content">
-                            <ol class="steps">
+            <div class="accordion-content">
+              <h3>1. Audio-Geräte einrichten</h3>
+              <ol class="steps">
+                <li>
+                  <strong>Sonic Deck starten</strong><br />
+                  Das Hauptfenster öffnet sich mit dem Dashboard
+                </li>
+                <li>
+                  <strong>Zu den Einstellungen gehen</strong><br />
+                  Klicke in der Sidebar auf
+                  <strong>"Settings"</strong> (Zahnrad-Symbol)
+                </li>
+                <li>
+                  <strong>Ausgabegeräte wählen</strong><br />
+                  <ul>
                     <li>
-                        <strong>Download VB-Cable</strong><br>
-                        <a href="https://download.vb-audio.com/Download_CABLE/VBCABLE_Driver_Pack45.zip" target="_blank" style="color: #00b0f4; font-weight: bold;">
-                            📥 Direkter Download: VBCABLE_Driver_Pack45.zip
-                        </a><br>
-                        <span style="color: #72767d; font-size: 0.9em;">
-                            Oder besuche: <a href="https://vb-audio.com/Cable/" target="_blank">vb-audio.com/Cable</a> (kostenlos, Donation optional)
+                      <strong>Monitor Output:</strong> Deine
+                      Kopfhörer/Lautsprecher (was DU hören möchtest)
+                    </li>
+                    <li>
+                      <strong>Broadcast Output:</strong> Virtual Audio Cable,
+                      OBS Audio, etc. (was dein STREAM hören soll)
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <strong>Lautstärke einstellen</strong><br />
+                  Setze die Default Volume auf 50% (sicherer Start-Wert)
+                </li>
+              </ol>
+
+              <div class="warning">
+                <strong>🔄 Für Streamer wichtig:</strong> Ohne Virtual Audio
+                Cable hört dein Stream die Sounds NICHT!<br />
+                Folge der Anleitung unten, um VB-Cable einzurichten.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Virtual Cable Setup -->
+        <div class="section">
+          <div class="accordion-item">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <h2>
+                <span class="emoji">🔌</span>Virtual Audio Cable einrichten (Für
+                Streaming)
+              </h2>
+              <span class="accordion-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+              <p style="margin-bottom: 20px">
+                Wenn du Sonic Deck für Streaming nutzen möchtest, brauchst du
+                ein
+                <strong>Virtual Audio Cable</strong>. Damit können die Sounds zu
+                deinem Stream/Discord/etc. geroutet werden.
+              </p>
+
+              <div class="accordion">
+                <div class="accordion-item">
+                  <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>Schritt 1: VB-Audio Virtual Cable installieren</h3>
+                    <span class="accordion-icon">▼</span>
+                  </div>
+                  <div class="accordion-content">
+                    <ol class="steps">
+                      <li>
+                        <strong>Download VB-Cable</strong><br />
+                        <a
+                          href="https://download.vb-audio.com/Download_CABLE/VBCABLE_Driver_Pack45.zip"
+                          target="_blank"
+                          style="color: #00b0f4; font-weight: bold"
+                        >
+                          📥 Direkter Download: VBCABLE_Driver_Pack45.zip </a
+                        ><br />
+                        <span style="color: #72767d; font-size: 0.9em">
+                          Oder besuche:
+                          <a href="https://vb-audio.com/Cable/" target="_blank"
+                            >vb-audio.com/Cable</a
+                          >
+                          (kostenlos, Donation optional)
                         </span>
-                    </li>
-                    <li>
-                        <strong>ZIP entpacken</strong><br>
+                      </li>
+                      <li>
+                        <strong>ZIP entpacken</strong><br />
                         Rechtsklick auf die ZIP → "Alle extrahieren"
-                    </li>
-                    <li>
-                        <strong>Setup starten</strong><br>
-                        <strong>Rechtsklick</strong> auf <code>VBCABLE_Setup_x64.exe</code> → <strong>"Als Administrator ausführen"</strong>
-                    </li>
-                    <li>
-                        <strong>Installation abschließen</strong><br>
-                        Klicke auf "Install Driver" → Warte bis "Installation completed" erscheint → OK
-                    </li>
-                    <li>
-                        <strong>PC neu starten</strong> (empfohlen)<br>
+                      </li>
+                      <li>
+                        <strong>Setup starten</strong><br />
+                        <strong>Rechtsklick</strong> auf
+                        <code>VBCABLE_Setup_x64.exe</code> →
+                        <strong>"Als Administrator ausführen"</strong>
+                      </li>
+                      <li>
+                        <strong>Installation abschließen</strong><br />
+                        Klicke auf "Install Driver" → Warte bis "Installation
+                        completed" erscheint → OK
+                      </li>
+                      <li>
+                        <strong>PC neu starten</strong> (empfohlen)<br />
                         Damit das virtuelle Gerät korrekt erkannt wird
-                    </li>
-                </ol>
-                        </div>
-                    </div>
-                    
-                    <div class="accordion-item">
-                        <div class="accordion-header" onclick="toggleAccordion(this)">
-                            <h3>Schritt 2: Windows 11 Sound-Einstellungen öffnen</h3>
-                            <span class="accordion-icon">▼</span>
-                        </div>
-                        <div class="accordion-content">
-                <div class="highlight">
-                    <strong>🚀 Schnellzugriff mit Win + R:</strong><br>
-                    Drücke <code>Win + R</code> → Tippe <code>mmsys.cpl</code> → Enter<br>
-                    <span style="color: #72767d; font-size: 0.9em;">Das öffnet direkt die klassischen Sound-Einstellungen!</span>
-                </div>
-                
-                <div class="warning">
-                    <strong>⚠️ WICHTIG:</strong> Setze "CABLE Input" NICHT als Standard-Wiedergabegerät!<br>
-                    Lasse deine normalen Kopfhörer/Lautsprecher als Standard in Windows.
-                </div>
-
-                <div style="margin: 20px 0; padding: 15px; background: #313338; border-radius: 8px;">
-                    <strong>Alternativ (manuell):</strong>
-                    <ol style="margin: 10px 0 0 20px;">
-                        <li>Rechtsklick auf Lautsprecher-Symbol in der Taskleiste</li>
-                        <li>Klicke auf <strong>"Soundeinstellungen"</strong></li>
-                        <li>Scrolle runter zu <strong>"Erweitert"</strong></li>
-                        <li>Klicke auf <strong>"Weitere Soundeinstellungen"</strong></li>
+                      </li>
                     </ol>
-                    <details class="image-toggle">
-                        <summary>Screenshot anzeigen (Windows Sound Einstellungen)</summary>
-                        <img src="./windows_playback_settings.png" alt="Windows Wiedergabe Einstellungen">
-                    </details>
+                  </div>
                 </div>
-                        </div>
-                    </div>
-                    
-                    <div class="accordion-item">
-                        <div class="accordion-header" onclick="toggleAccordion(this)">
-                            <h3>Schritt 3: Mikrofon-Routing einrichten (Damit man DICH + Sounds hört)</h3>
-                            <span class="accordion-icon">▼</span>
-                        </div>
-                        <div class="accordion-content">
-                <p style="margin-bottom: 15px;">
-                    Da Discord auf das Kabel hört (für die Sounds), müssen wir deine Stimme ebenfalls in dieses Kabel leiten.
-                </p>
-                <ol class="steps">
-                    <li>
-                        <strong>Zum "Aufnahme"-Tab wechseln</strong><br>
-                        Suche dein <strong>echtes Mikrofon</strong> (z.B. Logitech, Blue Yeti)
-                    </li>
-                    <li>
-                        <strong>Eigenschaften öffnen</strong><br>
-                        Rechtsklick auf dein Mikrofon → <strong>"Eigenschaften"</strong>
-                    </li>
-                    <li>
-                        <strong>"Abhören" aktivieren</strong><br>
-                        Wechsle zum Reiter <strong>"Abhören"</strong>.<br>
-                        Setze den Haken bei <strong>"Dieses Gerät als Wiedergabequelle verwenden"</strong>.
-                    </li>
-                    <li>
-                        <strong>Wiedergabegerät wählen</strong><br>
-                        Im Dropdown "Wiedergabe über dieses Gerät" wähle <strong>"CABLE Input (VB-Audio Virtual Cable)"</strong>.<br>
-                        <span style="color: #43b581; font-weight: 500;">✅ Jetzt wird deine Stimme zusammen mit den Sounds in das Kabel gesendet!</span>
-                        <details class="image-toggle">
-                            <summary>Screenshot anzeigen (Mikrofon Abhören)</summary>
-                            <img src="./microphone_listen_settings.png" alt="Mikrofon Abhören Einstellungen">
-                        </details>
-                    </li>
-                    <li>
-                        <strong>Auf Übernehmen klicken</strong><br>
-                    </li>
-                </ol>
-                        </div>
+
+                <div class="accordion-item">
+                  <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>Schritt 2: Windows 11 Sound-Einstellungen öffnen</h3>
+                    <span class="accordion-icon">▼</span>
+                  </div>
+                  <div class="accordion-content">
+                    <div class="highlight">
+                      <strong>🚀 Schnellzugriff mit Win + R:</strong><br />
+                      Drücke <code>Win + R</code> → Tippe
+                      <code>mmsys.cpl</code> → Enter<br />
+                      <span style="color: #72767d; font-size: 0.9em"
+                        >Das öffnet direkt die klassischen
+                        Sound-Einstellungen!</span
+                      >
                     </div>
 
-                    <div class="accordion-item">
-                        <div class="accordion-header" onclick="toggleAccordion(this)">
-                            <h3>Schritt 4: CABLE Output vorbereiten</h3>
-                            <span class="accordion-icon">▼</span>
-                        </div>
-                        <div class="accordion-content">
-                <ol class="steps">
-                    <li>
-                        <strong>Immer noch im "Aufnahme"-Tab</strong><br>
-                        Suche <strong>"CABLE Output"</strong>
-                    </li>
-                    <li>
-                        <strong>CABLE Output aktivieren</strong><br>
-                        Rechtsklick auf <strong>"CABLE Output"</strong> → <strong>"Aktivieren"</strong><br>
-                        <span style="color: #72767d; font-size: 0.9em;">Falls nicht sichtbar: Rechtsklick im leeren Bereich → "Deaktivierte Geräte anzeigen"</span>
-                        <details class="image-toggle">
-                            <summary>Screenshot anzeigen (Windows Aufnahme)</summary>
-                            <img src="./windows_recording_settings.png" alt="Windows Aufnahme Einstellungen">
-                        </details>
-                    </li>
-                    <li>
-                        <strong>Pegel prüfen</strong><br>
-                        Rechtsklick → "Eigenschaften" → "Pegel"-Tab → Lautstärke auf 100% setzen
-                    </li>
-                </ol>
-                        </div>
+                    <div class="warning">
+                      <strong>⚠️ WICHTIG:</strong> Setze "CABLE Input" NICHT als
+                      Standard-Wiedergabegerät!<br />
+                      Lasse deine normalen Kopfhörer/Lautsprecher als Standard
+                      in Windows.
                     </div>
-                    
-                    <div class="accordion-item">
-                        <div class="accordion-header" onclick="toggleAccordion(this)">
-                            <h3>Schritt 5: In SonicDeck einrichten</h3>
-                            <span class="accordion-icon">▼</span>
-                        </div>
-                        <div class="accordion-content">
-                <ol class="steps">
-                    <li>
-                        <strong>SonicDeck öffnen</strong><br>
-                        Gehe zu Settings (Zahnrad in der Sidebar)
-                    </li>
-                    <li>
-                        <strong>Monitor Output wählen</strong><br>
-                        Wähle deine <strong>normalen Kopfhörer/Lautsprecher</strong><br>
-                        <span style="color: #72767d; font-size: 0.9em;">Das ist was DU hören wirst</span>
-                    </li>
-                    <li>
-                        <strong>Broadcast Output wählen</strong><br>
-                        Wähle <strong>"CABLE Input (VB-Audio Virtual Cable)"</strong><br>
-                        <span style="color: #72767d; font-size: 0.9em;">Das wird zu deinem Stream/Discord geroutet</span>
-                    </li>
-                    <li>
-                        <strong>Test-Sound abspielen</strong><br>
-                        Zurück zum Dashboard → Sound abspielen → Du solltest ihn hören UND OBS sollte ihn erkennen
-                        <details class="image-toggle">
-                            <summary>Screenshot anzeigen (SonicDeck Settings)</summary>
-                            <img src="./sonicdeck_settings.png" alt="SonicDeck Einstellungen">
-                        </details>
-                    </li>
-                </ol>
-                        </div>
-                    </div>
-                    
-                    <div class="accordion-item">
-                        <div class="accordion-header" onclick="toggleAccordion(this)">
-                            <h3>Schritt 6: In Discord einrichten</h3>
-                            <span class="accordion-icon">▼</span>
-                        </div>
-                        <div class="accordion-content">
-                            <div class="highlight">
-                                <strong>🎮 Discord Audio-Setup:</strong>
-                                <ol style="margin: 10px 0 0 20px;">
-                                    <li>Discord öffnen → Einstellungen (Zahnrad unten links)</li>
-                                    <li>Links im Menü: <strong>"Sprache & Video"</strong></li>
-                                    <li><strong>Eingabegerät:</strong> Wähle <strong>"CABLE Output (VB-Audio Virtual Cable)"</strong></li>
-                                    <li><strong>Ausgabegerät:</strong> Deine normalen Kopfhörer (z.B. Logitech G935)
-                                        <details class="image-toggle">
-                                            <summary>Screenshot anzeigen (Discord Geräte)</summary>
-                                            <img src="./discord_devices.png" alt="Discord Audio Geräte">
-                                        </details>
-                                    </li>
-                                </ol>
-                            </div>
-                            
-                            <div style="margin: 20px 0; padding: 15px; background: #404249; border-radius: 8px;">
-                                <strong>📋 Weitere Einstellungen (auf der gleichen Seite):</strong>
-                                <ul style="margin: 10px 0 0 20px;">
-                                    <li><strong>Echo unterdrücken:</strong> <strong style="color: #f04747;">AUS schalten!</strong><br>
-                                        <span style="color: #72767d; font-size: 0.9em;">Sonst filtert Discord die Sounds aus SonicDeck weg</span>
-                                    </li>
-                                    <li><strong>Hintergrundgeräusche unterdrücken (Krisp):</strong> Auf <strong>"Keine"</strong> oder <strong>"Standard"</strong> stellen<br>
-                                        <span style="color: #72767d; font-size: 0.9em;">Krisp kann Sounds verfälschen/dämpfen</span>
-                                        <details class="image-toggle">
-                                            <summary>Screenshot anzeigen (Sprachverarbeitung)</summary>
-                                            <img src="./discord_voice_processing.png" alt="Discord Sprachverarbeitung">
-                                        </details>
-                                    </li>
-                                    <li><strong>Rauschunterdrückung:</strong> <strong>"Standard"</strong> ist OK<br>
-                                        <span style="color: #72767d; font-size: 0.9em;">Betrifft nur dein Mikrofon, nicht SonicDeck</span>
-                                    </li>
-                                </ul>
-                            </div>
-                            
-                            <div class="success" style="margin-top: 20px;">
-                                <strong>✅ Zusammenfassung:</strong><br>
-                                • Eingabe = Dein Mikrofon<br>
-                                • Ausgabe = CABLE (nicht deine Kopfhörer!)<br>
-                                • Echo unterdrücken = AUS<br>
-                                • Krisp = Keine/Standard
-                            </div>
-                            
-                            <div style="margin-top: 20px; padding: 15px; background: #404249; border-radius: 8px;">
-                                <strong>Test:</strong>
-                                <ol style="margin: 10px 0 0 20px;">
-                                    <li>Tritt einem Voice-Channel bei</li>
-                                    <li>Spiele einen Sound in SonicDeck ab</li>
-                                    <li>Deine Discord-Freunde sollten den Sound hören! 🎉</li>
-                                </ol>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                
-                <div class="success">
-                    <strong>✅ Fertig!</strong> SonicDeck spielt jetzt Sounds auf deine Kopfhörer UND in Discord!
-                </div>
-                
-                <h3>Troubleshooting Virtual Cable</h3>
-                <ul>
-                    <li><strong>CABLE Output nicht sichtbar:</strong> PC neu starten nach Installation</li>
-                    <li><strong>Discord hört nichts:</strong> Prüfe, ob CABLE Output als Standard-Aufnahmegerät gesetzt ist</li>
-                    <li><strong>Verzerrter Sound:</strong> Pegel in Windows auf 100%, dann in SonicDeck Volume runter</li>
-                    <li><strong>Echo in Discord:</strong> Dein Mikrofon nimmt die Sounds aus deinen Kopfhörern auf - Lautstärke runter!</li>
-                    <li><strong>Andere hören sich selbst:</strong> Das ist normal wenn du ihr Audio über SonicDeck abspielst</li>
-                </ul>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Sounds hinzufügen & verwenden -->
-            <div class="section">
-                <div class="accordion-item">
-                    <div class="accordion-header" onclick="toggleAccordion(this)">
-                        <h2><span class="emoji">🚀</span>Sounds hinzufügen & verwenden</h2>
-                        <span class="accordion-icon">▼</span>
-                    </div>
-                    <div class="accordion-content">
-                
-                <h3>2. Sounds hinzufügen</h3>
-                <ol class="steps">
-                    <li>
-                        <strong>Zurück zum Dashboard</strong><br>
-                        Klicke in der Sidebar auf "Dashboard"
-                    </li>
-                    <li>
-                        <strong>Kategorie erstellen</strong><br>
-                        Klicke auf das <strong>+ Symbol</strong> neben den Kategorie-Tabs → Namen eingeben → Enter
-                    </li>
-                    <li>
-                        <strong>Sound importieren</strong><br>
-                        <strong>Methode A:</strong> Datei per Drag & Drop in die App ziehen<br>
-                        <strong>Methode B:</strong> "Add Sound" Button klicken → Datei auswählen<br>
-                        <span style="color: #72767d; font-size: 0.9em;">Unterstützt: MP3, WAV, OGG</span>
-                    </li>
-                    <li>
-                        <strong>Sound bearbeiten</strong><br>
-                        <ul>
-                            <li>Name wird automatisch aus Dateinamen generiert</li>
-                            <li>Wähle ein Emoji-Icon aus der Liste</li>
-                            <li>Setze eine Kategorie</li>
-                            <li>Optional: Custom Volume pro Sound</li>
-                        </ul>
-                    </li>
-                </ol>
-                
-                <h3>3. Sounds abspielen</h3>
-                <div class="highlight">
-                    <strong>Linksklick:</strong> Sound abspielen (erneuter Klick stoppt und startet neu)<br>
-                    <strong>Rechtsklick:</strong> Öffnet Kontext-Menü mit Optionen:
-                    <ul style="margin-top: 10px; margin-bottom: 0;">
-                        <li>⭐ Add to Favorites / Remove Favorite</li>
-                        <li>✏️ Edit Sound</li>
-                        <li>✂️ Trim Audio</li>
-                        <li>🗑️ Delete Sound</li>
-                    </ul>
-                </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Features testen -->
-            <div class="section">
-                <div class="accordion-item">
-                    <div class="accordion-header" onclick="toggleAccordion(this)">
-                        <h2><span class="emoji">🧪</span>Was solltest du testen?</h2>
-                        <span class="accordion-icon">▼</span>
-                    </div>
-                    <div class="accordion-content">
-                
-                <h3>Grundlegende Funktionen</h3>
-                <ul>
-                    <li>✅ Sounds abspielen auf beiden Ausgängen gleichzeitig</li>
-                    <li>✅ Mehrere Sounds parallel abspielen (Overlap-Test)</li>
-                    <li>✅ Sound restart durch erneutes Klicken</li>
-                    <li>✅ Kategorie-System (Erstellen, Umbenennen, Löschen)</li>
-                    <li>✅ Drag & Drop Import (Single + Multi-File)</li>
-                    <li>✅ Favorites-System (Stern-Icon setzen/entfernen)</li>
-                </ul>
-                
-                <h3>Erweiterte Features</h3>
-                <ul>
-                    <li>🎚️ <strong>Volume Boost:</strong> In Settings → "Global Volume Boost" aktivieren (1.1x - 3.0x)</li>
-                    <li>✂️ <strong>Audio Trimming:</strong> Rechtsklick auf Sound → "Trim Audio" → Anfang/Ende trimmen → Speichern</li>
-                    <li>📊 <strong>Waveform:</strong> Während Playback sollte oben im Header die Waveform animiert werden</li>
-                    <li>🔄 <strong>Sound Edit:</strong> Name, Icon, Kategorie, Volume ändern</li>
-                </ul>
-                
-                <h3>Edge Cases & Probleme finden</h3>
-                <div class="tips">
-                    <h4>🔍 Bitte teste diese Szenarien:</h4>
-                    <ul>
-                        <li>Sehr große Audio-Dateien (>10 MB)</li>
-                        <li>Sehr kurze Sounds (<1 Sekunde)</li>
-                        <li>Schnelles Spam-Klicken auf Sounds</li>
-                        <li>Device-Wechsel während laufender Wiedergabe</li>
-                        <li>App minimieren/maximieren während Playback</li>
-                        <li>Viele Sounds parallel abspielen (10+)</li>
-                        <li>Sound-Bibliothek mit 50+ Sounds</li>
-                    </ul>
-                </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Bekannte Limitationen -->
-            <div class="section">
-                <div class="accordion-item">
-                    <div class="accordion-header" onclick="toggleAccordion(this)">
-                        <h2><span class="emoji">⚠️</span>Bekannte Limitationen</h2>
-                        <span class="accordion-icon">▼</span>
-                    </div>
-                    <div class="accordion-content">
-                <div class="highlight">
-                    <ul style="margin: 0;">
-                        <li><strong>Spam-Clicking:</strong> Sehr schnelles wiederholtes Klicken (>10x/Sekunde) kann dazu führen, dass Sounds nicht abspielen<br>
-                            <span style="color: #72767d; font-size: 0.9em;">→ Kurz warten zwischen Klicks (~100ms) für zuverlässiges Abspielen</span>
+
+                    <div
+                      style="
+                        margin: 20px 0;
+                        padding: 15px;
+                        background: #313338;
+                        border-radius: 8px;
+                      "
+                    >
+                      <strong>Alternativ (manuell):</strong>
+                      <ol style="margin: 10px 0 0 20px">
+                        <li>
+                          Rechtsklick auf Lautsprecher-Symbol in der Taskleiste
                         </li>
-                        <li><strong>Keine Hotkeys:</strong> Global Hotkeys sind noch nicht implementiert (geplant für Phase 5)</li>
-                        <li><strong>Kein System Tray:</strong> App muss im Vordergrund bleiben</li>
-                        <li><strong>Kein Autostart:</strong> Muss manuell gestartet werden</li>
-                        <li><strong>Windows SmartScreen:</strong> Warnung erscheint, da App nicht signiert ist</li>
-                    </ul>
-                </div>
-                
-                <div class="tips" style="margin-top: 20px;">
-                    <h4>💡 Warum kein Spam-Clicking?</h4>
-                    <p>
-                        Die App startet für jeden Sound einen eigenen Audio-Thread. Bei extremem Spam-Clicking 
-                        (z.B. 20 Klicks in 1 Sekunde) kann das System nicht schnell genug reagieren und Sounds 
-                        werden übersprungen. Das ist eine technische Limitierung der aktuellen Architektur.
-                    </p>
-                    <p style="margin-top: 10px; color: #00b0f4;">
-                        <strong>Normal schnelles Klicken</strong> (2-5x/Sekunde) funktioniert problemlos! 
-                        Nur extremes Button-Mashing ist problematisch.
-                    </p>
-                </div>
+                        <li>
+                          Klicke auf <strong>"Soundeinstellungen"</strong>
+                        </li>
+                        <li>Scrolle runter zu <strong>"Erweitert"</strong></li>
+                        <li>
+                          Klicke auf
+                          <strong>"Weitere Soundeinstellungen"</strong>
+                        </li>
+                      </ol>
+                      <details class="image-toggle">
+                        <summary>
+                          Screenshot anzeigen (Windows Sound Einstellungen)
+                        </summary>
+                        <img
+                          src="./windows_playback_settings.png"
+                          alt="Windows Wiedergabe Einstellungen"
+                        />
+                      </details>
                     </div>
+                  </div>
                 </div>
-            </div>
-            
-            <!-- Feedback -->
-            <div class="section">
+
                 <div class="accordion-item">
-                    <div class="accordion-header" onclick="toggleAccordion(this)">
-                        <h2><span class="emoji">📝</span>Feedback geben</h2>
-                        <span class="accordion-icon">▼</span>
-                    </div>
-                    <div class="accordion-content">
-                <p>Dein Feedback ist extrem wertvoll! Bitte notiere:</p>
-                
-                <div class="features">
-                    <div class="feature-card">
-                        <h4>🐛 Bugs</h4>
-                        <p>Was funktioniert nicht? Unter welchen Bedingungen tritt der Fehler auf?</p>
-                    </div>
-                    <div class="feature-card">
-                        <h4>💡 Verbesserungsvorschläge</h4>
-                        <p>Was könnte besser/einfacher sein? Welche Features fehlen dir?</p>
-                    </div>
-                    <div class="feature-card">
-                        <h4>✨ Was gefällt dir?</h4>
-                        <p>Welche Features funktionieren gut? Was macht Spaß?</p>
-                    </div>
-                    <div class="feature-card">
-                        <h4>🤔 UX-Probleme</h4>
-                        <p>Was ist verwirrend? Wo hast du nach Features gesucht?</p>
-                    </div>
+                  <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>
+                      Schritt 3: Mikrofon-Routing einrichten (Damit man DICH +
+                      Sounds hört)
+                    </h3>
+                    <span class="accordion-icon">▼</span>
+                  </div>
+                  <div class="accordion-content">
+                    <p style="margin-bottom: 15px">
+                      Da Discord auf das Kabel hört (für die Sounds), müssen wir
+                      deine Stimme ebenfalls in dieses Kabel leiten.
+                    </p>
+                    <ol class="steps">
+                      <li>
+                        <strong>Zum "Aufnahme"-Tab wechseln</strong><br />
+                        Suche dein <strong>echtes Mikrofon</strong> (z.B.
+                        Logitech, Blue Yeti)
+                      </li>
+                      <li>
+                        <strong>Eigenschaften öffnen</strong><br />
+                        Rechtsklick auf dein Mikrofon →
+                        <strong>"Eigenschaften"</strong>
+                      </li>
+                      <li>
+                        <strong>"Abhören" aktivieren</strong><br />
+                        Wechsle zum Reiter <strong>"Abhören"</strong>.<br />
+                        Setze den Haken bei
+                        <strong
+                          >"Dieses Gerät als Wiedergabequelle verwenden"</strong
+                        >.
+                      </li>
+                      <li>
+                        <strong>Wiedergabegerät wählen</strong><br />
+                        Im Dropdown "Wiedergabe über dieses Gerät" wähle
+                        <strong>"CABLE Input (VB-Audio Virtual Cable)"</strong
+                        >.<br />
+                        <span style="color: #43b581; font-weight: 500"
+                          >✅ Jetzt wird deine Stimme zusammen mit den Sounds in
+                          das Kabel gesendet!</span
+                        >
+                        <details class="image-toggle">
+                          <summary>
+                            Screenshot anzeigen (Mikrofon Abhören)
+                          </summary>
+                          <img
+                            src="./microphone_listen_settings.png"
+                            alt="Mikrofon Abhören Einstellungen"
+                          />
+                        </details>
+                      </li>
+                      <li><strong>Auf Übernehmen klicken</strong><br /></li>
+                    </ol>
+                  </div>
                 </div>
-                
-                <div class="success">
-                    <strong>📧 Email:</strong> adrikonop@gmail.com<br>
-                    <strong>💬 Discord:</strong> dranelixx (ID: 624679678573150219)<br>
-                    <strong>🐛 GitHub Issues:</strong> <a href="https://github.com/DraneLixX/SonicDeck/issues" target="_blank" style="color: white;">github.com/DraneLixX/SonicDeck/issues</a>
+
+                <div class="accordion-item">
+                  <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>Schritt 4: CABLE Output vorbereiten</h3>
+                    <span class="accordion-icon">▼</span>
+                  </div>
+                  <div class="accordion-content">
+                    <ol class="steps">
+                      <li>
+                        <strong>Immer noch im "Aufnahme"-Tab</strong><br />
+                        Suche <strong>"CABLE Output"</strong>
+                      </li>
+                      <li>
+                        <strong>CABLE Output aktivieren</strong><br />
+                        Rechtsklick auf <strong>"CABLE Output"</strong> →
+                        <strong>"Aktivieren"</strong><br />
+                        <span style="color: #72767d; font-size: 0.9em"
+                          >Falls nicht sichtbar: Rechtsklick im leeren Bereich →
+                          "Deaktivierte Geräte anzeigen"</span
+                        >
+                        <details class="image-toggle">
+                          <summary>
+                            Screenshot anzeigen (Windows Aufnahme)
+                          </summary>
+                          <img
+                            src="./windows_recording_settings.png"
+                            alt="Windows Aufnahme Einstellungen"
+                          />
+                        </details>
+                      </li>
+                      <li>
+                        <strong>Pegel prüfen</strong><br />
+                        Rechtsklick → "Eigenschaften" → "Pegel"-Tab → Lautstärke
+                        auf 100% setzen
+                      </li>
+                    </ol>
+                  </div>
                 </div>
-                
-                <div style="margin-top: 30px; padding: 20px; background: #1e1f22; border-radius: 8px; border: 2px solid #5865f2;">
-                    <h3 style="color: #5865f2; margin-top: 0;">📋 Bug-Report Vorlage</h3>
-                    <p style="margin-bottom: 15px;">Kopiere diese Vorlage und fülle sie aus:</p>
-                    <pre style="background: #2b2d31; padding: 15px; border-radius: 6px; overflow-x: auto; color: #dcddde; font-size: 0.9em; line-height: 1.6; white-space: pre-wrap;">
-<strong>🐛 Bug-Report für SonicDeck v0.1.0</strong>
+
+                <div class="accordion-item">
+                  <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>Schritt 5: In Sonic Deck einrichten</h3>
+                    <span class="accordion-icon">▼</span>
+                  </div>
+                  <div class="accordion-content">
+                    <ol class="steps">
+                      <li>
+                        <strong>Sonic Deck öffnen</strong><br />
+                        Gehe zu Settings (Zahnrad in der Sidebar)
+                      </li>
+                      <li>
+                        <strong>Monitor Output wählen</strong><br />
+                        Wähle deine
+                        <strong>normalen Kopfhörer/Lautsprecher</strong><br />
+                        <span style="color: #72767d; font-size: 0.9em"
+                          >Das ist was DU hören wirst</span
+                        >
+                      </li>
+                      <li>
+                        <strong>Broadcast Output wählen</strong><br />
+                        Wähle
+                        <strong>"CABLE Input (VB-Audio Virtual Cable)"</strong
+                        ><br />
+                        <span style="color: #72767d; font-size: 0.9em"
+                          >Das wird zu deinem Stream/Discord geroutet</span
+                        >
+                      </li>
+                      <li>
+                        <strong>Test-Sound abspielen</strong><br />
+                        Zurück zum Dashboard → Sound abspielen → Du solltest ihn
+                        hören UND OBS sollte ihn erkennen
+                        <details class="image-toggle">
+                          <summary>
+                            Screenshot anzeigen (Sonic Deck Settings)
+                          </summary>
+                          <img
+                            src="./sonicdeck_settings.png"
+                            alt="Sonic Deck Einstellungen"
+                          />
+                        </details>
+                      </li>
+                    </ol>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
+                  <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <h3>Schritt 6: In Discord einrichten</h3>
+                    <span class="accordion-icon">▼</span>
+                  </div>
+                  <div class="accordion-content">
+                    <div class="highlight">
+                      <strong>🎮 Discord Audio-Setup:</strong>
+                      <ol style="margin: 10px 0 0 20px">
+                        <li>
+                          Discord öffnen → Einstellungen (Zahnrad unten links)
+                        </li>
+                        <li>
+                          Links im Menü: <strong>"Sprache & Video"</strong>
+                        </li>
+                        <li>
+                          <strong>Eingabegerät:</strong> Wähle
+                          <strong
+                            >"CABLE Output (VB-Audio Virtual Cable)"</strong
+                          >
+                        </li>
+                        <li>
+                          <strong>Ausgabegerät:</strong> Deine normalen
+                          Kopfhörer (z.B. Logitech G935)
+                          <details class="image-toggle">
+                            <summary>
+                              Screenshot anzeigen (Discord Geräte)
+                            </summary>
+                            <img
+                              src="./discord_devices.png"
+                              alt="Discord Audio Geräte"
+                            />
+                          </details>
+                        </li>
+                      </ol>
+                    </div>
+
+                    <div
+                      style="
+                        margin: 20px 0;
+                        padding: 15px;
+                        background: #404249;
+                        border-radius: 8px;
+                      "
+                    >
+                      <strong
+                        >📋 Weitere Einstellungen (auf der gleichen
+                        Seite):</strong
+                      >
+                      <ul style="margin: 10px 0 0 20px">
+                        <li>
+                          <strong>Echo unterdrücken:</strong>
+                          <strong style="color: #f04747">AUS schalten!</strong
+                          ><br />
+                          <span style="color: #72767d; font-size: 0.9em"
+                            >Sonst filtert Discord die Sounds aus Sonic Deck
+                            weg</span
+                          >
+                        </li>
+                        <li>
+                          <strong
+                            >Hintergrundgeräusche unterdrücken (Krisp):</strong
+                          >
+                          Auf <strong>"Keine"</strong> oder
+                          <strong>"Standard"</strong> stellen<br />
+                          <span style="color: #72767d; font-size: 0.9em"
+                            >Krisp kann Sounds verfälschen/dämpfen</span
+                          >
+                          <details class="image-toggle">
+                            <summary>
+                              Screenshot anzeigen (Sprachverarbeitung)
+                            </summary>
+                            <img
+                              src="./discord_voice_processing.png"
+                              alt="Discord Sprachverarbeitung"
+                            />
+                          </details>
+                        </li>
+                        <li>
+                          <strong>Rauschunterdrückung:</strong>
+                          <strong>"Standard"</strong> ist OK<br />
+                          <span style="color: #72767d; font-size: 0.9em"
+                            >Betrifft nur dein Mikrofon, nicht Sonic Deck</span
+                          >
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div class="success" style="margin-top: 20px">
+                      <strong>✅ Zusammenfassung:</strong><br />
+                      • Eingabe = Dein Mikrofon<br />
+                      • Ausgabe = CABLE (nicht deine Kopfhörer!)<br />
+                      • Echo unterdrücken = AUS<br />
+                      • Krisp = Keine/Standard
+                    </div>
+
+                    <div
+                      style="
+                        margin-top: 20px;
+                        padding: 15px;
+                        background: #404249;
+                        border-radius: 8px;
+                      "
+                    >
+                      <strong>Test:</strong>
+                      <ol style="margin: 10px 0 0 20px">
+                        <li>Tritt einem Voice-Channel bei</li>
+                        <li>Spiele einen Sound in Sonic Deck ab</li>
+                        <li>
+                          Deine Discord-Freunde sollten den Sound hören! 🎉
+                        </li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="success">
+                <strong>✅ Fertig!</strong> Sonic Deck spielt jetzt Sounds auf
+                deine Kopfhörer UND in Discord!
+              </div>
+
+              <h3>Troubleshooting Virtual Cable</h3>
+              <ul>
+                <li>
+                  <strong>CABLE Output nicht sichtbar:</strong> PC neu starten
+                  nach Installation
+                </li>
+                <li>
+                  <strong>Discord hört nichts:</strong> Prüfe, ob CABLE Output
+                  als Standard-Aufnahmegerät gesetzt ist
+                </li>
+                <li>
+                  <strong>Verzerrter Sound:</strong> Pegel in Windows auf 100%,
+                  dann in Sonic Deck Volume runter
+                </li>
+                <li>
+                  <strong>Echo in Discord:</strong> Dein Mikrofon nimmt die
+                  Sounds aus deinen Kopfhörern auf - Lautstärke runter!
+                </li>
+                <li>
+                  <strong>Andere hören sich selbst:</strong> Das ist normal wenn
+                  du ihr Audio über Sonic Deck abspielst
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sounds hinzufügen & verwenden -->
+        <div class="section">
+          <div class="accordion-item">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <h2>
+                <span class="emoji">🚀</span>Sounds hinzufügen & verwenden
+              </h2>
+              <span class="accordion-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+              <h3>2. Sounds hinzufügen</h3>
+              <ol class="steps">
+                <li>
+                  <strong>Zurück zum Dashboard</strong><br />
+                  Klicke in der Sidebar auf "Dashboard"
+                </li>
+                <li>
+                  <strong>Kategorie erstellen</strong><br />
+                  Klicke auf das <strong>+ Symbol</strong> neben den
+                  Kategorie-Tabs → Namen eingeben → Enter
+                </li>
+                <li>
+                  <strong>Sound importieren</strong><br />
+                  <strong>Methode A:</strong> Datei per Drag & Drop in die App
+                  ziehen<br />
+                  <strong>Methode B:</strong> "Add Sound" Button klicken → Datei
+                  auswählen<br />
+                  <span style="color: #72767d; font-size: 0.9em"
+                    >Unterstützt: MP3, WAV, OGG</span
+                  >
+                </li>
+                <li>
+                  <strong>Sound bearbeiten</strong><br />
+                  <ul>
+                    <li>Name wird automatisch aus Dateinamen generiert</li>
+                    <li>Wähle ein Emoji-Icon aus der Liste</li>
+                    <li>Setze eine Kategorie</li>
+                    <li>Optional: Custom Volume pro Sound</li>
+                  </ul>
+                </li>
+              </ol>
+
+              <h3>3. Sounds abspielen</h3>
+              <div class="highlight">
+                <strong>Linksklick:</strong> Sound abspielen (erneuter Klick
+                stoppt und startet neu)<br />
+                <strong>Rechtsklick:</strong> Öffnet Kontext-Menü mit Optionen:
+                <ul style="margin-top: 10px; margin-bottom: 0">
+                  <li>⭐ Add to Favorites / Remove Favorite</li>
+                  <li>✏️ Edit Sound</li>
+                  <li>✂️ Trim Audio</li>
+                  <li>🗑️ Delete Sound</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Features testen -->
+        <div class="section">
+          <div class="accordion-item">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <h2><span class="emoji">🧪</span>Was solltest du testen?</h2>
+              <span class="accordion-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+              <h3>Grundlegende Funktionen</h3>
+              <ul>
+                <li>✅ Sounds abspielen auf beiden Ausgängen gleichzeitig</li>
+                <li>✅ Mehrere Sounds parallel abspielen (Overlap-Test)</li>
+                <li>✅ Sound restart durch erneutes Klicken</li>
+                <li>✅ Kategorie-System (Erstellen, Umbenennen, Löschen)</li>
+                <li>✅ Drag & Drop Import (Single + Multi-File)</li>
+                <li>✅ Favorites-System (Stern-Icon setzen/entfernen)</li>
+              </ul>
+
+              <h3>Erweiterte Features</h3>
+              <ul>
+                <li>
+                  🎚️ <strong>Volume Boost:</strong> In Settings → "Global Volume
+                  Boost" aktivieren (1.1x - 3.0x)
+                </li>
+                <li>
+                  ✂️ <strong>Audio Trimming:</strong> Rechtsklick auf Sound →
+                  "Trim Audio" → Anfang/Ende trimmen → Speichern
+                </li>
+                <li>
+                  📊 <strong>Waveform:</strong> Während Playback sollte oben im
+                  Header die Waveform animiert werden
+                </li>
+                <li>
+                  🔄 <strong>Sound Edit:</strong> Name, Icon, Kategorie, Volume
+                  ändern
+                </li>
+              </ul>
+
+              <h3>Edge Cases & Probleme finden</h3>
+              <div class="tips">
+                <h4>🔍 Bitte teste diese Szenarien:</h4>
+                <ul>
+                  <li>Sehr große Audio-Dateien (>10 MB)</li>
+                  <li>Sehr kurze Sounds (<1 Sekunde)</li>
+                  <li>Schnelles Spam-Klicken auf Sounds</li>
+                  <li>Device-Wechsel während laufender Wiedergabe</li>
+                  <li>App minimieren/maximieren während Playback</li>
+                  <li>Viele Sounds parallel abspielen (10+)</li>
+                  <li>Sound-Bibliothek mit 50+ Sounds</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bekannte Limitationen -->
+        <div class="section">
+          <div class="accordion-item">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <h2><span class="emoji">⚠️</span>Bekannte Limitationen</h2>
+              <span class="accordion-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+              <div class="highlight">
+                <ul style="margin: 0">
+                  <li>
+                    <strong>Spam-Clicking:</strong> Sehr schnelles wiederholtes
+                    Klicken (>10x/Sekunde) kann dazu führen, dass Sounds nicht
+                    abspielen<br />
+                    <span style="color: #72767d; font-size: 0.9em"
+                      >→ Kurz warten zwischen Klicks (~100ms) für zuverlässiges
+                      Abspielen</span
+                    >
+                  </li>
+                  <li>
+                    <strong>Keine Hotkeys:</strong> Global Hotkeys sind noch
+                    nicht implementiert (geplant für Phase 5)
+                  </li>
+                  <li>
+                    <strong>Kein System Tray:</strong> App muss im Vordergrund
+                    bleiben
+                  </li>
+                  <li>
+                    <strong>Kein Autostart:</strong> Muss manuell gestartet
+                    werden
+                  </li>
+                  <li>
+                    <strong>Windows SmartScreen:</strong> Warnung erscheint, da
+                    App nicht signiert ist
+                  </li>
+                </ul>
+              </div>
+
+              <div class="tips" style="margin-top: 20px">
+                <h4>💡 Warum kein Spam-Clicking?</h4>
+                <p>
+                  Die App startet für jeden Sound einen eigenen Audio-Thread.
+                  Bei extremem Spam-Clicking (z.B. 20 Klicks in 1 Sekunde) kann
+                  das System nicht schnell genug reagieren und Sounds werden
+                  übersprungen. Das ist eine technische Limitierung der
+                  aktuellen Architektur.
+                </p>
+                <p style="margin-top: 10px; color: #00b0f4">
+                  <strong>Normal schnelles Klicken</strong> (2-5x/Sekunde)
+                  funktioniert problemlos! Nur extremes Button-Mashing ist
+                  problematisch.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feedback -->
+        <div class="section">
+          <div class="accordion-item">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <h2><span class="emoji">📝</span>Feedback geben</h2>
+              <span class="accordion-icon">▼</span>
+            </div>
+            <div class="accordion-content">
+              <p>Dein Feedback ist extrem wertvoll! Bitte notiere:</p>
+
+              <div class="features">
+                <div class="feature-card">
+                  <h4>🐛 Bugs</h4>
+                  <p>
+                    Was funktioniert nicht? Unter welchen Bedingungen tritt der
+                    Fehler auf?
+                  </p>
+                </div>
+                <div class="feature-card">
+                  <h4>💡 Verbesserungsvorschläge</h4>
+                  <p>
+                    Was könnte besser/einfacher sein? Welche Features fehlen
+                    dir?
+                  </p>
+                </div>
+                <div class="feature-card">
+                  <h4>✨ Was gefällt dir?</h4>
+                  <p>Welche Features funktionieren gut? Was macht Spaß?</p>
+                </div>
+                <div class="feature-card">
+                  <h4>🤔 UX-Probleme</h4>
+                  <p>Was ist verwirrend? Wo hast du nach Features gesucht?</p>
+                </div>
+              </div>
+
+              <div class="success">
+                <strong>📧 Email:</strong> adrikonop@gmail.com<br />
+                <strong>💬 Discord:</strong> dranelixx (ID:
+                624679678573150219)<br />
+                <strong>🐛 GitHub Issues:</strong>
+                <a
+                  href="https://github.com/DraneLixX/Sonic Deck/issues"
+                  target="_blank"
+                  style="color: white"
+                  >github.com/DraneLixX/Sonic Deck/issues</a
+                >
+              </div>
+
+              <div
+                style="
+                  margin-top: 30px;
+                  padding: 20px;
+                  background: #1e1f22;
+                  border-radius: 8px;
+                  border: 2px solid #5865f2;
+                "
+              >
+                <h3 style="color: #5865f2; margin-top: 0">
+                  📋 Bug-Report Vorlage
+                </h3>
+                <p style="margin-bottom: 15px">
+                  Kopiere diese Vorlage und fülle sie aus:
+                </p>
+                <pre
+                  style="
+                    background: #2b2d31;
+                    padding: 15px;
+                    border-radius: 6px;
+                    overflow-x: auto;
+                    color: #dcddde;
+                    font-size: 0.9em;
+                    line-height: 1.6;
+                    white-space: pre-wrap;
+                  "
+                >
+<strong>🐛 Bug-Report für Sonic Deck v0.1.0</strong>
 
 <strong>Problem-Beschreibung:</strong>
 [Beschreibe kurz, was nicht funktioniert]
@@ -953,172 +1218,247 @@
 <strong>Zusätzliche Infos:</strong>
 [Screenshots, weitere Details, wie oft es passiert, etc.]
                     </pre>
-                    <div style="margin-top: 15px; padding: 15px; background: #313338; border-radius: 6px;">
-                        <strong style="color: #00b0f4;">📌 So kommst du an die System-Infos:</strong>
-                        <ul style="margin: 10px 0 0 20px; color: #b9bbbe;">
-                            <li><strong>Windows Version:</strong><br>
-                                • Drücke <code>Win + R</code> → Tippe <code>winver</code> → Enter<br>
-                                • Kopiere die ersten beiden Zeilen aus dem Fenster
-                            </li>
-                            <li style="margin-top: 10px;"><strong>Audio-Geräte:</strong><br>
-                                • Öffne SonicDeck → Klicke auf "Settings" (Sidebar)<br>
-                                • Notiere "Monitor Output" und "Broadcast Output"
-                            </li>
-                        </ul>
-                    </div>
-                    <div style="margin-top: 15px;">
-                        <strong style="color: #43b581;">💡 Tipp:</strong> Je detaillierter dein Report, desto schneller kann ich das Problem fixen!
-                    </div>
+                <div
+                  style="
+                    margin-top: 15px;
+                    padding: 15px;
+                    background: #313338;
+                    border-radius: 6px;
+                  "
+                >
+                  <strong style="color: #00b0f4"
+                    >📌 So kommst du an die System-Infos:</strong
+                  >
+                  <ul style="margin: 10px 0 0 20px; color: #b9bbbe">
+                    <li>
+                      <strong>Windows Version:</strong><br />
+                      • Drücke <code>Win + R</code> → Tippe
+                      <code>winver</code> → Enter<br />
+                      • Kopiere die ersten beiden Zeilen aus dem Fenster
+                    </li>
+                    <li style="margin-top: 10px">
+                      <strong>Audio-Geräte:</strong><br />
+                      • Öffne Sonic Deck → Klicke auf "Settings" (Sidebar)<br />
+                      • Notiere "Monitor Output" und "Broadcast Output"
+                    </li>
+                  </ul>
                 </div>
-                    </div>
+                <div style="margin-top: 15px">
+                  <strong style="color: #43b581">💡 Tipp:</strong> Je
+                  detaillierter dein Report, desto schneller kann ich das
+                  Problem fixen!
                 </div>
+              </div>
             </div>
-            
-            <!-- Troubleshooting -->
-            <div class="section">
-                <div class="accordion-item">
-                    <div class="accordion-header" onclick="toggleAccordion(this)">
-                        <h2><span class="emoji">🔧</span>Troubleshooting</h2>
-                        <span class="accordion-icon">▼</span>
-                    </div>
-                    <div class="accordion-content">
-                
-                <h3>App startet nicht</h3>
-                <ul>
-                    <li>Prüfe, ob Antivirus die .exe blockiert</li>
-                    <li>Führe Setup als Administrator aus</li>
-                    <li>Windows Defender Ausnahme hinzufügen</li>
-                </ul>
-                
-                <h3>Kein Ton zu hören</h3>
-                <ul>
-                    <li>Prüfe Settings → sind die richtigen Geräte ausgewählt?</li>
-                    <li>Ist die Volume auf 0%?</li>
-                    <li>Sind deine Audio-Geräte in Windows aktiviert?</li>
-                    <li>Teste mit einem einfachen Sound (z.B. kurzer Beep)</li>
-                </ul>
-                
-                <h3>Performance-Probleme</h3>
-                <ul>
-                    <li>Cache wird automatisch gemanagt (500MB Limit)</li>
-                    <li>Bei vielen Sounds: Prüfe Task Manager → RAM-Nutzung</li>
-                    <li>Große Dateien werden im Hintergrund decodiert</li>
-                </ul>
-                
-                <h3>Logs & Konfigurationsdateien finden</h3>
-                <div class="code">
-                    <strong>Speicherort (Windows):</strong> %LOCALAPPDATA%\com.sonicdeck.app\<br><br>
-                    
-                    <strong>Log-Dateien:</strong> logs\sonicdeck.YYYY-MM-DD.log<br>
-                    - Beispiel: <code>sonicdeck.2025-12-20.log</code><br>
-                    - Automatische tägliche Rotation (letzte 7 Tage werden behalten)<br>
-                    - Enthält Fehler, Warnungen und Informationen über App-Aktivitäten<br>
-                    - Öffnet direkt mit Doppelklick in Notepad/Editor<br><br>
-                    
-                    <strong>Konfiguration:</strong><br>
-                    - settings.json (Deine Einstellungen)<br>
-                    - sounds.json (Sound-Bibliothek)
-                </div>
-                
-                <div class="success" style="margin-top: 20px;">
-                    <strong>💡 Logs für Bug-Reports:</strong><br>
-                    1. Problem reproduzieren (damit es im Log steht)<br>
-                    2. Öffne Windows Explorer → Eingabe: <code>%LOCALAPPDATA%\com.sonicdeck.app\logs</code><br>
-                    3. Die neueste .log Datei (mit heutigem Datum) kopieren und mit Bug-Report senden<br>
-                    4. Das hilft enorm beim Debuggen! 🙏
-                </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Technische Details -->
-            <div class="section">
-                <h2><span class="emoji">⚙️</span>Technische Details</h2>
-                <div class="features">
-                    <div class="feature-card">
-                        <h4>Framework</h4>
-                        <p>Tauri v2 (Rust + Web)</p>
-                    </div>
-                    <div class="feature-card">
-                        <h4>Backend</h4>
-                        <p>Rust (cpal + symphonia)</p>
-                    </div>
-                    <div class="feature-card">
-                        <h4>Frontend</h4>
-                        <p>React 18 + TypeScript</p>
-                    </div>
-                    <div class="feature-card">
-                        <h4>Installiert</h4>
-                        <p>~14.6 MB auf der Festplatte</p>
-                    </div>
-                    <div class="feature-card">
-                        <h4>Speicher (RAM)</h4>
-                        <p>~50 MB + Cache (max 500MB)</p>
-                    </div>
-                    <div class="feature-card">
-                        <h4>Installer</h4>
-                        <p>NSIS: 3.17 MB<br>MSI: 4.70 MB</p>
-                    </div>
-                </div>
-            </div>
+          </div>
         </div>
-        
-        <div class="footer">
-            <p><strong>SonicDeck v0.1.0 Beta</strong> | Built with ❤️ by Adrian Konopczynski (DraneLixX)</p>
-            
-            <div style="margin-top: 20px; padding: 15px; background: #2b2d31; border-radius: 6px; border-left: 3px solid #5865f2;">
-                <p style="margin: 0 0 10px 0; font-size: 0.95em;">
-                    <strong style="color: #dcddde;">📞 Kontakt & Support:</strong>
-                </p>
-                <p style="margin: 5px 0; font-size: 0.9em; color: #b9bbbe;">
-                    📧 Email: <a href="mailto:adrikonop@gmail.com" style="color: #00b0f4;">adrikonop@gmail.com</a><br>
-                    💬 Discord: dranelixx (ID: 624679678573150219)<br>
-                    🐛 GitHub Issues: <a href="https://github.com/DraneLixX/SonicDeck/issues" target="_blank" style="color: #00b0f4;">Bug melden</a><br>
-                    🌐 Repository: <a href="https://github.com/DraneLixX/SonicDeck" target="_blank" style="color: #00b0f4;">github.com/DraneLixX/SonicDeck</a>
-                </p>
+
+        <!-- Troubleshooting -->
+        <div class="section">
+          <div class="accordion-item">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              <h2><span class="emoji">🔧</span>Troubleshooting</h2>
+              <span class="accordion-icon">▼</span>
             </div>
-            
-            <p style="margin-top: 15px; padding: 15px; background: #1e1f22; border-radius: 6px; border: 1px solid #5865f2;">
-                <strong style="color: #5865f2;">🎨 Artist gesucht!</strong><br>
-                Ich suche einen Artist für visuelle Assets (Icons, UI-Design, Social Media, Branding, etc.).<br>
-                <span style="color: #72767d; font-size: 0.9em;">Open-Source Community-Projekt - unentgeltlich, aber mit Credit!</span><br>
-                Interesse? Kontakt: adrikonop@gmail.com oder Discord: dranelixx
-            </p>
-            
-            <div style="margin-top: 20px; padding: 10px; background: #1e1f22; border-radius: 6px;">
-                <p style="margin: 0; font-size: 0.85em; color: #72767d;">
-                    © 2025 Adrian Konopczynski (DraneLixX) | <a href="https://github.com/DraneLixX/SonicDeck/blob/main/LICENSE" target="_blank" style="color: #72767d;">MIT License</a><br>
-                    <span style="font-size: 0.8em;">SonicDeck ist Open-Source Software. Du kannst sie frei nutzen, modifizieren und verteilen.</span>
-                </p>
+            <div class="accordion-content">
+              <h3>App startet nicht</h3>
+              <ul>
+                <li>Prüfe, ob Antivirus die .exe blockiert</li>
+                <li>Führe Setup als Administrator aus</li>
+                <li>Windows Defender Ausnahme hinzufügen</li>
+              </ul>
+
+              <h3>Kein Ton zu hören</h3>
+              <ul>
+                <li>Prüfe Settings → sind die richtigen Geräte ausgewählt?</li>
+                <li>Ist die Volume auf 0%?</li>
+                <li>Sind deine Audio-Geräte in Windows aktiviert?</li>
+                <li>Teste mit einem einfachen Sound (z.B. kurzer Beep)</li>
+              </ul>
+
+              <h3>Performance-Probleme</h3>
+              <ul>
+                <li>Cache wird automatisch gemanagt (500MB Limit)</li>
+                <li>Bei vielen Sounds: Prüfe Task Manager → RAM-Nutzung</li>
+                <li>Große Dateien werden im Hintergrund decodiert</li>
+              </ul>
+
+              <h3>Logs & Konfigurationsdateien finden</h3>
+              <div class="code">
+                <strong>Speicherort (Windows):</strong>
+                %LOCALAPPDATA%\com.sonicdeck.app\<br /><br />
+
+                <strong>Log-Dateien:</strong>
+                logs\sonicdeck.YYYY-MM-DD.log<br />
+                - Beispiel: <code>sonicdeck.2025-12-20.log</code><br />
+                - Automatische tägliche Rotation (letzte 7 Tage werden
+                behalten)<br />
+                - Enthält Fehler, Warnungen und Informationen über
+                App-Aktivitäten<br />
+                - Öffnet direkt mit Doppelklick in Notepad/Editor<br /><br />
+
+                <strong>Konfiguration:</strong><br />
+                - settings.json (Deine Einstellungen)<br />
+                - sounds.json (Sound-Bibliothek)
+              </div>
+
+              <div class="success" style="margin-top: 20px">
+                <strong>💡 Logs für Bug-Reports:</strong><br />
+                1. Problem reproduzieren (damit es im Log steht)<br />
+                2. Öffne Windows Explorer → Eingabe:
+                <code>%LOCALAPPDATA%\com.sonicdeck.app\logs</code><br />
+                3. Die neueste .log Datei (mit heutigem Datum) kopieren und mit
+                Bug-Report senden<br />
+                4. Das hilft enorm beim Debuggen! 🙏
+              </div>
             </div>
-            
-            <p style="margin-top: 15px; color: #dcddde;">Vielen Dank fürs Testen! 🎉</p>
+          </div>
         </div>
+
+        <!-- Technische Details -->
+        <div class="section">
+          <h2><span class="emoji">⚙️</span>Technische Details</h2>
+          <div class="features">
+            <div class="feature-card">
+              <h4>Framework</h4>
+              <p>Tauri v2 (Rust + Web)</p>
+            </div>
+            <div class="feature-card">
+              <h4>Backend</h4>
+              <p>Rust (cpal + symphonia)</p>
+            </div>
+            <div class="feature-card">
+              <h4>Frontend</h4>
+              <p>React 18 + TypeScript</p>
+            </div>
+            <div class="feature-card">
+              <h4>Installiert</h4>
+              <p>~14.6 MB auf der Festplatte</p>
+            </div>
+            <div class="feature-card">
+              <h4>Speicher (RAM)</h4>
+              <p>~50 MB + Cache (max 500MB)</p>
+            </div>
+            <div class="feature-card">
+              <h4>Installer</h4>
+              <p>NSIS: 3.17 MB<br />MSI: 4.70 MB</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <p>
+          <strong>Sonic Deck v0.6.0 Beta</strong> | Built with ❤️ by Adrian
+          Konopczynski (DraneLixX)
+        </p>
+
+        <div
+          style="
+            margin-top: 20px;
+            padding: 15px;
+            background: #2b2d31;
+            border-radius: 6px;
+            border-left: 3px solid #5865f2;
+          "
+        >
+          <p style="margin: 0 0 10px 0; font-size: 0.95em">
+            <strong style="color: #dcddde">📞 Kontakt & Support:</strong>
+          </p>
+          <p style="margin: 5px 0; font-size: 0.9em; color: #b9bbbe">
+            📧 Email:
+            <a href="mailto:adrikonop@gmail.com" style="color: #00b0f4"
+              >adrikonop@gmail.com</a
+            ><br />
+            💬 Discord: dranelixx (ID: 624679678573150219)<br />
+            🐛 GitHub Issues:
+            <a
+              href="https://github.com/DraneLixX/Sonic Deck/issues"
+              target="_blank"
+              style="color: #00b0f4"
+              >Bug melden</a
+            ><br />
+            🌐 Repository:
+            <a
+              href="https://github.com/DraneLixX/Sonic Deck"
+              target="_blank"
+              style="color: #00b0f4"
+              >github.com/DraneLixX/Sonic Deck</a
+            >
+          </p>
+        </div>
+
+        <p
+          style="
+            margin-top: 15px;
+            padding: 15px;
+            background: #1e1f22;
+            border-radius: 6px;
+            border: 1px solid #5865f2;
+          "
+        >
+          <strong style="color: #5865f2">🎨 Artist gesucht!</strong><br />
+          Ich suche einen Artist für visuelle Assets (Icons, UI-Design, Social
+          Media, Branding, etc.).<br />
+          <span style="color: #72767d; font-size: 0.9em"
+            >Open-Source Community-Projekt - unentgeltlich, aber mit
+            Credit!</span
+          ><br />
+          Interesse? Kontakt: adrikonop@gmail.com oder Discord: dranelixx
+        </p>
+
+        <div
+          style="
+            margin-top: 20px;
+            padding: 10px;
+            background: #1e1f22;
+            border-radius: 6px;
+          "
+        >
+          <p style="margin: 0; font-size: 0.85em; color: #72767d">
+            © 2025 Adrian Konopczynski (DraneLixX) |
+            <a
+              href="https://github.com/DraneLixX/Sonic Deck/blob/main/LICENSE"
+              target="_blank"
+              style="color: #72767d"
+              >MIT License</a
+            ><br />
+            <span style="font-size: 0.8em"
+              >Sonic Deck ist Open-Source Software. Du kannst sie frei nutzen,
+              modifizieren und verteilen.</span
+            >
+          </p>
+        </div>
+
+        <p style="margin-top: 15px; color: #dcddde">
+          Vielen Dank fürs Testen! 🎉
+        </p>
+      </div>
     </div>
-    
+
     <script>
-        function toggleAccordion(header) {
-            const content = header.nextElementSibling;
-            const icon = header.querySelector('.accordion-icon');
-            const isActive = content.classList.contains('active');
-            
-            // Optional: Schließe alle anderen Accordions
-            // document.querySelectorAll('.accordion-content').forEach(item => {
-            //     item.classList.remove('active');
-            // });
-            // document.querySelectorAll('.accordion-icon').forEach(item => {
-            //     item.classList.remove('active');
-            // });
-            
-            // Toggle current accordion
-            if (isActive) {
-                content.classList.remove('active');
-                icon.classList.remove('active');
-            } else {
-                content.classList.add('active');
-                icon.classList.add('active');
-            }
+      function toggleAccordion(header) {
+        const content = header.nextElementSibling;
+        const icon = header.querySelector(".accordion-icon");
+        const isActive = content.classList.contains("active");
+
+        // Optional: Schließe alle anderen Accordions
+        // document.querySelectorAll('.accordion-content').forEach(item => {
+        //     item.classList.remove('active');
+        // });
+        // document.querySelectorAll('.accordion-icon').forEach(item => {
+        //     item.classList.remove('active');
+        // });
+
+        // Toggle current accordion
+        if (isActive) {
+          content.classList.remove("active");
+          icon.classList.remove("active");
+        } else {
+          content.classList.add("active");
+          icon.classList.add("active");
         }
+      }
     </script>
-</body>
+  </body>
 </html>

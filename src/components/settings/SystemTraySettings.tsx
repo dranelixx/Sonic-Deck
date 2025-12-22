@@ -56,7 +56,7 @@ export default function SystemTraySettings({
           </span>
         </label>
         <p className="text-xs text-discord-text-muted ml-6">
-          Launch SonicDeck directly in the system tray on startup.
+          Launch Sonic Deck directly in the system tray on startup.
         </p>
       </div>
 
@@ -75,11 +75,11 @@ export default function SystemTraySettings({
                      text-discord-primary focus:ring-discord-primary cursor-pointer"
           />
           <span className="text-sm text-discord-text">
-            Launch SonicDeck on system startup
+            Launch Sonic Deck on system startup
           </span>
         </label>
         <p className="text-xs text-discord-text-muted ml-6">
-          Automatically start SonicDeck when you log into Windows.
+          Automatically start Sonic Deck when you log into Windows.
         </p>
       </div>
     </>

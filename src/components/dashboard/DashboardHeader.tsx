@@ -28,7 +28,7 @@ export default function DashboardHeader({
               className="text-xl font-bold text-discord-primary leading-none"
               style={{ transform: "translateY(-3px)" }}
             >
-              SonicDeck
+              Sonic Deck
             </h1>
           </div>
 

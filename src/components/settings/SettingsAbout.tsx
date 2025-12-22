@@ -4,8 +4,8 @@ export default function SettingsAbout() {
       <div className="flex items-center gap-3 mb-4">
         <span className="text-3xl">🎵</span>
         <div>
-          <h3 className="text-xl font-bold text-discord-text">SonicDeck</h3>
-          <p className="text-sm text-discord-text-muted">Version 0.1.0 Beta</p>
+          <h3 className="text-xl font-bold text-discord-text">Sonic Deck</h3>
+          <p className="text-sm text-discord-text-muted">Version 0.6.0 Beta</p>
         </div>
       </div>
 
@@ -23,7 +23,7 @@ export default function SettingsAbout() {
           <p className="text-xs text-discord-text-muted mt-1">
             Licensed under the{" "}
             <a
-              href="https://github.com/DraneLixX/SonicDeck/blob/main/LICENSE"
+              href="https://github.com/DraneLixX/Sonic-Deck/blob/main/LICENSE"
               target="_blank"
               rel="noopener noreferrer"
               className="text-discord-primary hover:underline"
@@ -58,7 +58,7 @@ export default function SettingsAbout() {
             <p>
               🐛 Report Bugs:{" "}
               <a
-                href="https://github.com/DraneLixX/SonicDeck/issues"
+                href="https://github.com/DraneLixX/Sonic-Deck/issues"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-discord-primary hover:underline"
@@ -69,12 +69,12 @@ export default function SettingsAbout() {
             <p>
               🌐 Source Code:{" "}
               <a
-                href="https://github.com/DraneLixX/SonicDeck"
+                href="https://github.com/DraneLixX/Sonic-Deck"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-discord-primary hover:underline"
               >
-                github.com/DraneLixX/SonicDeck
+                github.com/DraneLixX/Sonic-Deck
               </a>
             </p>
           </div>
@@ -87,7 +87,7 @@ export default function SettingsAbout() {
           </h4>
           <p className="text-xs text-discord-text-muted">
             We're looking for an artist to create visual assets (icons, UI
-            design, branding, etc.) for SonicDeck. This is an open-source
+            design, branding, etc.) for Sonic Deck. This is an open-source
             community project - unpaid, but with credit!
           </p>
           <p className="text-xs text-discord-text-muted mt-2">

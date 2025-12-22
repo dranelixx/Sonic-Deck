@@ -1,4 +1,4 @@
-//! Audio module for SonicDeck
+//! Audio module for Sonic Deck
 //!
 //! Provides dual-output audio routing with cpal-based playback and caching.
 

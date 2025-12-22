@@ -230,7 +230,7 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* About SonicDeck */}
+          {/* About Sonic Deck */}
           <SettingsAbout />
 
           {/* Save Button */}

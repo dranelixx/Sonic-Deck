@@ -64,9 +64,9 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
-          name: SonicDeck ${{ steps.tag.outputs.tag }}
+          name: Sonic Deck ${{ steps.tag.outputs.tag }}
           body: |
-            ## SonicDeck ${{ steps.tag.outputs.tag }}
+            ## Sonic Deck ${{ steps.tag.outputs.tag }}
             
             ### Downloads
             - **Windows Installer (.msi)**: Recommended for most users

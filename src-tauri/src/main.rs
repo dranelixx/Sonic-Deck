@@ -23,7 +23,7 @@ fn setup_logging() {
     // Then we'll manually rename or use a custom wrapper
     let file_appender = RollingFileAppender::builder()
         .rotation(Rotation::DAILY)
-        .filename_prefix("sonicdeck")
+        .filename_prefix("sonic-deck")
         .filename_suffix("log")
         .max_log_files(7)
         .build(&app_data_dir)
@@ -45,10 +45,11 @@ fn setup_logging() {
 
     // Setup log filter: INFO level by default, DEBUG for our app in dev mode
     let filter = if cfg!(debug_assertions) {
-        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("sonicdeck=debug,warn"))
+        EnvFilter::try_from_default_env()
+            .unwrap_or_else(|_| EnvFilter::new("sonic_deck=debug,warn"))
     // Only debug for our crate, warn for others
     } else {
-        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("sonicdeck=info,warn"))
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("sonic_deck=info,warn"))
         // Info for our crate, warn for others
     };
 
@@ -59,11 +60,11 @@ fn setup_logging() {
         .with(console_layer)
         .init();
 
-    tracing::info!("SonicDeck v{} starting up", env!("CARGO_PKG_VERSION"));
+    tracing::info!("Sonic Deck v{} starting up", env!("CARGO_PKG_VERSION"));
     tracing::info!("Logs directory: {}", logs_path.display());
 }
 
 fn main() {
     setup_logging();
-    sonicdeck::run();
+    sonic_deck::run();
 }

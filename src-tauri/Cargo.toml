@@ -1,8 +1,8 @@
 [package]
-name = "sonicdeck"
+name = "sonic-deck"
 version = "0.6.0"
 description = "High-performance Desktop Soundboard with Dual-Output Routing"
-authors = ["SonicDeck Team"]
+authors = ["Sonic Deck Team"]
 edition = "2021"
 
 [build-dependencies]
