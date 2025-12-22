@@ -2,7 +2,7 @@ name: Rust Checks
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, 'fix/**', 'feature/**', 'refactor/**' ]
     paths:
       - 'src-tauri/**'
       - 'src/**'
