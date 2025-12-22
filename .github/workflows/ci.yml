@@ -7,10 +7,67 @@ on:
     branches: [ main ]
 
 jobs:
-  code-quality:
-    name: Code Quality Checks
+  # 1. Frontend Checks: Fast feedback on UI code quality
+  frontend:
+    name: Frontend Checks
     runs-on: windows-latest
-    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Prettier check
+        run: yarn format:check
+
+      - name: ESLint check
+        run: yarn lint
+
+      - name: TypeScript check
+        run: yarn typecheck
+
+  # 2. Rust Quality: Check style and common pitfalls
+  rust-quality:
+    name: Rust Quality
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            src-tauri/target/
+          key: ${{ runner.os }}-cargo-quality-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Rust Format check
+        run: cd src-tauri && cargo fmt -- --check
+
+      - name: Rust Clippy
+        run: cd src-tauri && cargo clippy -- -D warnings
+
+  # 3. Rust Compilation: Ensure the app actually builds
+  rust-check:
+    name: Rust Compilation
+    runs-on: windows-latest
+    needs: [frontend] # Only compile if frontend build (which it depends on) is valid
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -23,10 +80,8 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
 
-      - name: Cache Rust dependencies
+      - name: Cache Rust
         uses: actions/cache@v3
         with:
           path: |
@@ -35,28 +90,13 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             src-tauri/target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install frontend dependencies
         run: yarn install --frozen-lockfile
 
-      - name: TypeScript type check
-        run: yarn typecheck
-
-      - name: ESLint check
-        run: yarn lint
-
-      - name: Prettier format check
-        run: yarn format:check
-
-      - name: Build frontend for Rust compilation
+      - name: Build frontend
         run: yarn build
 
-      - name: Rust format check
-        run: cd src-tauri && cargo fmt -- --check
-
-      - name: Rust clippy
-        run: cd src-tauri && cargo clippy -- -D warnings
-
-      - name: Rust compilation check
+      - name: Rust Compilation check
         run: cd src-tauri && cargo check

@@ -30,6 +30,7 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@tailwindcss/language-server": "^0.14.29",
     "@tauri-apps/cli": "^2.0.0",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
@@ -46,7 +47,8 @@
     "prettier": "^3.7.4",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.3.3",
-    "vite": "^5.0.8"
+    "vite": "^5.0.8",
+    "vscode-langservers-extracted": "^4.10.0"
   },
   "lint-staged": {
     "src/**/*.{ts,tsx}": [
