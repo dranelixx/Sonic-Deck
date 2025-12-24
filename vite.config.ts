@@ -5,7 +5,12 @@ import path from "path";
 
 // Load version from version.json
 const versionFile = path.join(__dirname, "../version.json");
-const versionData = JSON.parse(fs.readFileSync(versionFile, "utf-8"));
+let versionData = { version: "0.2.0-alpha" };
+try {
+  versionData = JSON.parse(fs.readFileSync(versionFile, "utf-8"));
+} catch (err) {
+  console.warn(`⚠️  Warning: Could not read version.json, using default version`);
+}
 
 // https://vitejs.dev/config/
 export default defineConfig({
