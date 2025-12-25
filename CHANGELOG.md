@@ -24,10 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add comprehensive error handling (try-catch) to `sync-version.js` for robust file I/O
 - Fix TOML regex to target only `[package]` section, preventing accidental dependency version changes
 - Fix `vite.config.ts` path bug (`../version.json` → `./version.json`)
+- Fix MSI build failure by implementing dual-version system (numeric build version for MSI compatibility)
 
 ### Technical
 - Implement ESM-compatible version sync script with helper functions
-- Add `VITE_APP_VERSION` injection in `vite.config.ts`
+- Add `VITE_APP_VERSION` and `VITE_APP_CHANNEL` injection in `vite.config.ts`
+- Implement dual-version system: numeric build version (MSI-compatible) + alphanumeric display version (user-friendly)
+- Add smart version display logic in `SettingsAbout.tsx` (converts `0.7.0-0` + `alpha` → `v0.7.0-alpha`)
 - Update pre-commit hooks to stage synced version files automatically
 - Replace hardcoded version in `SettingsAbout.tsx` with environment variable
 

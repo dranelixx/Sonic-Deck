@@ -5,7 +5,7 @@ import path from "path";
 
 // Load version from version.json (in project root, same directory as vite.config.ts)
 const versionFile = path.join(__dirname, "version.json");
-let versionData = { version: "0.7.0-alpha" };
+let versionData = { version: "0.7.0-0", channel: "alpha" };
 try {
   versionData = JSON.parse(fs.readFileSync(versionFile, "utf-8"));
 } catch (err) {
@@ -17,6 +17,7 @@ export default defineConfig({
   plugins: [react()],
   define: {
     "import.meta.env.VITE_APP_VERSION": JSON.stringify(versionData.version),
+    "import.meta.env.VITE_APP_CHANNEL": JSON.stringify(versionData.channel),
   },
 
   // Vite options tailored for Tauri development

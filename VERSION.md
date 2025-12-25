@@ -4,10 +4,10 @@ Sonic Deck uses a centralized version system to keep all version strings in sync
 
 ## How to Bump the Version
 
-1. **Edit `version.json`** with the new version:
+1. **Edit `version.json`** with the new version (numeric format):
    ```json
    {
-     "version": "0.3.0-alpha",
+     "version": "0.3.0-0",
      "prerelease": true,
      "channel": "alpha",
      "releaseDate": "2025-12-25",
@@ -19,6 +19,8 @@ Sonic Deck uses a centralized version system to keep all version strings in sync
    ```bash
    git add version.json
    git commit -m "chore: bump version to 0.3.0-alpha"
+   git tag v0.3.0-alpha
+   git push && git push --tags
    ```
 
 3. **The pre-commit hook automatically:**
@@ -27,13 +29,34 @@ Sonic Deck uses a centralized version system to keep all version strings in sync
    - Stages the synced files
    - Everything is committed together
 
-## Version Format
+## Version Format (Dual-Version System)
 
-Sonic Deck follows **Semantic Versioning (SemVer)** with pre-release identifiers:
+### MSI Compatibility Requirement
 
-- `0.2.0-alpha` - Early development, many features experimental
-- `0.5.0-beta` - Beta phase, most features stable, some polishing needed
-- `1.0.0` - Stable release
+**Problem:** MSI installers (Windows) only accept **numeric** pre-release identifiers. Alphanumeric versions like `0.3.0-alpha` cause build failures.
+
+**Solution:** Sonic Deck uses a **dual-version system**:
+
+| Component | Format | Example | Purpose |
+|-----------|--------|---------|---------|
+| **Build Version** | Numeric | `0.7.0-0` | MSI installer, package managers |
+| **Display Version** | Alphanumeric | `v0.7.0-alpha` | User-facing (UI, GitHub releases) |
+
+### Version Mapping
+
+The `version` field uses **numeric** pre-release identifiers, while `channel` provides the user-friendly name:
+
+| Phase | `version` | `channel` | MSI Installer | User Sees |
+|-------|-----------|-----------|---------------|-----------|
+| **Alpha** | `0.X.Y-0` | `"alpha"` | `0.X.Y-0` | `v0.X.Y-alpha` |
+| **Beta** | `0.X.Y-1` | `"beta"` | `0.X.Y-1` | `v0.X.Y-beta` |
+| **RC** | `0.X.Y-2` | `"rc"` | `0.X.Y-2` | `v0.X.Y-rc` |
+| **Stable** | `0.X.Y` | `""` | `0.X.Y` | `v0.X.Y` |
+
+**Examples:**
+- `{ "version": "0.7.0-0", "channel": "alpha" }` → User sees `v0.7.0-alpha`
+- `{ "version": "0.8.0-1", "channel": "beta" }` → User sees `v0.8.0-beta`
+- `{ "version": "1.0.0", "channel": "" }` → User sees `v1.0.0`
 
 ## Files Included in Sync
 
@@ -46,20 +69,28 @@ Sonic Deck follows **Semantic Versioning (SemVer)** with pre-release identifiers
 
 ### Frontend (React/TypeScript)
 
-Use the `VITE_APP_VERSION` environment variable in React components:
+Use the `VITE_APP_VERSION` and `VITE_APP_CHANNEL` environment variables in React components:
 
 ```typescript
-// Any React component
+// Display user-friendly version (e.g., "v0.7.0-alpha")
 const appVersion = import.meta.env.VITE_APP_VERSION;
+const appChannel = import.meta.env.VITE_APP_CHANNEL || "";
+
+const displayVersion = appChannel
+  ? `v${appVersion.replace(/-\d+$/, '')}-${appChannel}`
+  : `v${appVersion}`;
 
 export const MyComponent = () => (
-  <p>Version: {appVersion}</p>
+  <p>Version: {displayVersion}</p>
 );
 ```
 
 **How it works:**
-- Set at **build-time** from `version.json` in `vite.config.ts`
-- Replaces the value during compilation
+- Both values set at **build-time** from `version.json` in `vite.config.ts`
+- `VITE_APP_VERSION` = numeric build version (e.g., `0.7.0-0`)
+- `VITE_APP_CHANNEL` = alphanumeric channel (e.g., `alpha`)
+- Regex `.replace(/-\d+$/, '')` removes numeric suffix → `0.7.0-0` becomes `0.7.0`
+- Combined with channel → `v0.7.0-alpha` (user-friendly)
 - No runtime overhead
 - Automatically updated when you bump the version
 
@@ -98,8 +129,10 @@ Single commit with all synced files
 
 ## Why This System?
 
-Single source of truth prevents version mismatches across different build systems (npm, cargo, Tauri). 
-- ✅ Only edit `version.json`
-- ✅ Automatic synchronization via pre-commit hook
-- ✅ No manual file updates needed
-- ✅ Future-proof for new version displays (use env variable)
+Single source of truth prevents version mismatches across different build systems (npm, cargo, Tauri).
+- ✅ **Single Source of Truth**: Only edit `version.json`
+- ✅ **MSI Compatibility**: Numeric build versions work with Windows installers
+- ✅ **User-Friendly Display**: Alphanumeric channel names in UI (`v0.7.0-alpha`)
+- ✅ **Automatic Synchronization**: Pre-commit hook syncs all config files
+- ✅ **No Manual Updates**: All version files updated automatically
+- ✅ **Future-Proof**: Environment variables allow flexible version display
