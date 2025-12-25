@@ -1,5 +1,12 @@
 echo "🚀 Running pre-commit checks for Sonic Deck..."
 
+# Sync version from version.json to all config files
+echo "📦 Syncing version..."
+node scripts/sync-version.js || exit 1
+
+# Auto-add synced version files
+git add package.json src-tauri/Cargo.toml src-tauri/tauri.conf.json || exit 1
+
 # TypeScript type check
 echo "🔍 TypeScript compilation check..."
 yarn typecheck || exit 1

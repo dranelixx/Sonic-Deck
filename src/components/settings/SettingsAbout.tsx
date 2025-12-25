@@ -1,11 +1,19 @@
 export default function SettingsAbout() {
+  const appVersion = import.meta.env.VITE_APP_VERSION || "unknown";
+  const appChannel = import.meta.env.VITE_APP_CHANNEL || "";
+
+  // Display version with channel (e.g., "v0.7.0-alpha" instead of "v0.7.0-0")
+  const displayVersion = appChannel
+    ? `v${appVersion.replace(/-\d+$/, "")}-${appChannel}`
+    : `v${appVersion}`;
+
   return (
     <div className="bg-discord-dark rounded-lg p-6 border-l-4 border-discord-primary">
       <div className="flex items-center gap-3 mb-4">
         <span className="text-3xl">🎵</span>
         <div>
           <h3 className="text-xl font-bold text-discord-text">Sonic Deck</h3>
-          <p className="text-sm text-discord-text-muted">Version 0.6.0 Beta</p>
+          <p className="text-sm text-discord-text-muted">{displayVersion}</p>
         </div>
       </div>
 
