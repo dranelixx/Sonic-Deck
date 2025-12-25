@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.2.0-alpha] - 2025-12-24
+## [0.7.0-alpha] - 2025-12-24
 
 ### Added
 - Centralized version management system (single source of truth)
@@ -17,20 +17,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `VERSION.md` documentation for version management workflow
 
 ### Changed
-- Version adjusted from 0.7.0-beta to 0.2.0-alpha (better reflects development phase)
 - Build process now automatically syncs versions in `package.json`, `Cargo.toml`, and `tauri.conf.json`
 - Build scripts (`yarn build`, `yarn tauri:dev`, `yarn tauri:build`) now include automatic version sync
 
+### Fixed
+- Add comprehensive error handling (try-catch) to `sync-version.js` for robust file I/O
+- Fix TOML regex to target only `[package]` section, preventing accidental dependency version changes
+- Fix `vite.config.ts` path bug (`../version.json` → `./version.json`)
+
 ### Technical
-- Implement ESM-compatible version sync script
+- Implement ESM-compatible version sync script with helper functions
 - Add `VITE_APP_VERSION` injection in `vite.config.ts`
 - Update pre-commit hooks to stage synced version files automatically
 - Replace hardcoded version in `SettingsAbout.tsx` with environment variable
 
 ### Known Issues
-- Hotkey multi-trigger on rapid key press (Fix planned for v0.8.0)
-- UI click has artificial delay (Fix planned for v0.8.0)
-- System tray close behavior inconsistent (Fix planned for v0.8.0)
+- Hotkey multi-trigger on rapid key press (Fix planned for v0.7.3 or v0.8.0)
+- UI click has artificial delay (Fix planned for v0.7.3)
+- System tray close behavior inconsistent (Fix planned for v0.7.3)
+
+---
+
+## [0.6.0-beta] - 2025-12-21 (Previous Release)
+
+### Summary
+- First public beta release with core audio engine and hotkey system
+- Ready for user testing and feedback
 
 ---
 

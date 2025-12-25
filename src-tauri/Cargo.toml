@@ -1,6 +1,6 @@
 [package]
 name = "sonic-deck"
-version = "0.2.0-alpha"
+version = "0.7.0-alpha"
 description = "High-performance Desktop Soundboard with Dual-Output Routing"
 authors = ["Sonic Deck Team"]
 edition = "2021"

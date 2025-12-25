@@ -3,9 +3,9 @@ import react from "@vitejs/plugin-react";
 import fs from "fs";
 import path from "path";
 
-// Load version from version.json
-const versionFile = path.join(__dirname, "../version.json");
-let versionData = { version: "0.2.0-alpha" };
+// Load version from version.json (in project root, same directory as vite.config.ts)
+const versionFile = path.join(__dirname, "version.json");
+let versionData = { version: "0.7.0-alpha" };
 try {
   versionData = JSON.parse(fs.readFileSync(versionFile, "utf-8"));
 } catch (err) {
