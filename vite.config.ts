@@ -5,11 +5,11 @@ import path from "path";
 
 // Load version from version.json (in project root, same directory as vite.config.ts)
 const versionFile = path.join(__dirname, "version.json");
-let versionData = { version: "0.7.0-0", channel: "alpha" };
+let versionData = { version: "0.0.0-dev", channel: "unknown" };
 try {
   versionData = JSON.parse(fs.readFileSync(versionFile, "utf-8"));
 } catch (err) {
-  console.warn(`⚠️  Warning: Could not read version.json, using default version`);
+  console.warn(`⚠️  Warning: Could not read version.json, using fallback version (0.0.0-unknown)`);
 }
 
 // https://vitejs.dev/config/
