@@ -85,16 +85,31 @@ Sonic Deck is a high-performance desktop soundboard application built with:
 
 ### Git Workflow
 
-**Branching Strategy**: See `Trilium/Boilerplates/Git/8. Branching Strategy` for full details.
+**Branching Strategy**: Git Flow Light with `develop` branch
 
 - **Branch Types**: `feature/description`, `fix/description`, `chore/description`, `refactor/description`
-- **Never commit to `main`** - always use feature branches
-- **Workflow**: Feature branch → Interactive rebase if needed → PR → Merge commit to main
-- **Interactive Rebase**: `git rebase -i main` before PR to organize/squash commits (especially if chaotic)
+- **Never commit directly to `main` or `develop`** - always use feature branches
+- **Main Branches**:
+  - `main` - Production-ready releases only
+  - `develop` - Integration branch for ongoing work
+- **Development Workflow**:
+  1. Create feature/fix branch from `develop`
+  2. Make changes, commit with conventional commits
+  3. Push branch and create PR to `develop`
+  4. CI runs: Frontend + Rust checks (no Claude Review)
+  5. Merge to `develop` after checks pass
+- **Release Workflow**:
+  1. When ready for release: Create PR from `develop` to `main`
+  2. CI runs: Frontend + Rust checks + **Claude Code Review**
+  3. After approval: Squash merge to `main`
+  4. Update version in `version.json`, tag (`v0.X.Y`), push tag
+- **Interactive Rebase**: `git rebase -i develop` before PR to organize/squash commits (especially if chaotic)
 - **Pre-commit hooks**: Automatic lint, format, typecheck (Husky) on every commit
-- **CI/CD**: `.github/workflows/frontend.yml` and `rust.yml` run on `main`, `fix/**`, `feature/**`, `refactor/**` branches. `.github/workflows/release.yml` triggered by version tags.
-- **Merge Strategy**: Squash merge (1 clean commit per PR on main, full history in PR)
-- **Release**: Update version in `version.json` (Single Source of Truth), commit, tag (`v0.X.Y`), push tag
+- **CI/CD**:
+  - Frontend/Rust checks: Run on `main`, `develop`, `fix/**`, `feature/**`, `refactor/**` branches and PRs to `main`/`develop`
+  - Claude Code Review: **Only** on PRs to `main` (saves runner minutes)
+  - Release workflow: Triggered by version tags
+- **Merge Strategy**: Squash merge (1 clean commit per PR, full history in PR)
 
 ---
 
