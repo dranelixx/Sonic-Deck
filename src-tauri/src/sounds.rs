@@ -147,7 +147,7 @@ impl Default for SoundLibrary {
 pub fn get_sounds_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
     let app_data_dir = app_handle
         .path()
-        .app_data_dir()
+        .app_local_data_dir()
         .map_err(|e| format!("Failed to get app data directory: {}", e))?;
 
     // Ensure directory exists
@@ -175,17 +175,14 @@ pub fn load(app_handle: &tauri::AppHandle) -> Result<SoundLibrary, String> {
     Ok(library)
 }
 
-/// Save sound library to disk
+/// Save sound library to disk (atomic write)
 pub fn save(library: &SoundLibrary, app_handle: &tauri::AppHandle) -> Result<(), String> {
     let sounds_path = get_sounds_path(app_handle)?;
 
     let json = serde_json::to_string_pretty(library)
         .map_err(|e| format!("Failed to serialize sounds: {}", e))?;
 
-    std::fs::write(&sounds_path, json)
-        .map_err(|e| format!("Failed to write sounds file: {}", e))?;
-
-    Ok(())
+    crate::persistence::atomic_write(&sounds_path, &json)
 }
 
 // ============================================================================
