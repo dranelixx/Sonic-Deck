@@ -89,7 +89,6 @@ pub fn get_sound_id<'a>(mappings: &'a HotkeyMappings, hotkey: &str) -> Option<&'
 }
 
 /// Get all hotkeys assigned to a specific sound
-#[allow(dead_code)]
 pub fn get_hotkeys_for_sound(mappings: &HotkeyMappings, sound_id: &SoundId) -> Vec<String> {
     mappings
         .mappings

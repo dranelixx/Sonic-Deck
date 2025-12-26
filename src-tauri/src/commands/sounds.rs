@@ -1,8 +1,10 @@
 //! Sound library and category management commands
 
+use crate::hotkeys;
 use crate::sounds::{self, Category, CategoryId, Sound, SoundId, SoundLibrary};
 use crate::AppState;
 use tauri::State;
+use tracing::{info, warn};
 
 /// Load the sound library from in-memory state
 #[tauri::command]
@@ -96,13 +98,52 @@ pub fn toggle_favorite(
     Ok(updated_sound)
 }
 
-/// Delete a sound from the library
+/// Delete a sound from the library and remove associated hotkeys
 #[tauri::command]
 pub fn delete_sound(
     sound_id: SoundId,
     state: State<'_, AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<(), String> {
+    // First, find and remove any hotkeys associated with this sound
+    let mut mappings = {
+        let current = state.read_hotkeys();
+        current.clone()
+    };
+
+    let hotkeys_to_remove = hotkeys::get_hotkeys_for_sound(&mappings, &sound_id);
+
+    if !hotkeys_to_remove.is_empty() {
+        info!(
+            "Removing {} hotkey(s) for deleted sound {:?}",
+            hotkeys_to_remove.len(),
+            sound_id
+        );
+
+        #[cfg(desktop)]
+        {
+            use tauri_plugin_global_shortcut::GlobalShortcutExt;
+
+            for hotkey in &hotkeys_to_remove {
+                // Unregister global shortcut
+                if let Ok(shortcut) = hotkey.parse::<tauri_plugin_global_shortcut::Shortcut>() {
+                    if let Err(e) = app_handle.global_shortcut().unregister(shortcut) {
+                        warn!("Failed to unregister hotkey '{}': {}", hotkey, e);
+                    }
+                }
+
+                // Remove from mappings
+                if let Err(e) = hotkeys::remove_mapping(&mut mappings, hotkey) {
+                    warn!("Failed to remove hotkey mapping '{}': {}", hotkey, e);
+                }
+            }
+        }
+
+        // Save updated hotkey mappings
+        state.update_and_save_hotkeys(&app_handle, mappings)?;
+    }
+
+    // Now delete the sound
     let mut library = {
         let current = state.read_sounds();
         current.clone()
@@ -110,6 +151,7 @@ pub fn delete_sound(
 
     sounds::delete_sound(&mut library, &sound_id)?;
     state.update_and_save_sounds(&app_handle, library)?;
+
     Ok(())
 }
 
