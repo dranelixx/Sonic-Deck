@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2.0.0",
-  "productName": "Sonic Deck",
+  "productName": "SonicDeck",
   "version": "0.7.0-0",
   "identifier": "com.sonicdeck.app",
   "build": {
@@ -13,7 +13,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "Sonic Deck",
+        "title": "SonicDeck",
         "width": 1200,
         "height": 800,
         "minWidth": 800,
