@@ -149,9 +149,16 @@ fn write_audio_f32(
         let frac = *index - frame_idx as f64; // Fractional part for interpolation
 
         for (ch, sample) in frame.iter_mut().enumerate() {
-            let ch_idx = ch % input_channels;
-            let idx1 = frame_idx * input_channels + ch_idx;
-            let idx2 = (frame_idx + 1) * input_channels + ch_idx;
+            // Only map audio to channels that exist in input
+            // Extra output channels (e.g., center, LFE, surround in 5.1/7.1) get silence
+            // This prevents audio artifacts on multi-channel devices like Razer 7.1 headsets
+            if ch >= input_channels {
+                *sample = 0.0;
+                continue;
+            }
+
+            let idx1 = frame_idx * input_channels + ch;
+            let idx2 = (frame_idx + 1) * input_channels + ch;
 
             if idx2 < audio_data.samples.len() {
                 // Linear interpolation: value = sample1 + (sample2 - sample1) * frac
@@ -201,9 +208,16 @@ fn write_audio_i16(
         let frac = *index - frame_idx as f64;
 
         for (ch, sample) in frame.iter_mut().enumerate() {
-            let ch_idx = ch % input_channels;
-            let idx1 = frame_idx * input_channels + ch_idx;
-            let idx2 = (frame_idx + 1) * input_channels + ch_idx;
+            // Only map audio to channels that exist in input
+            // Extra output channels (e.g., center, LFE, surround in 5.1/7.1) get silence
+            // This prevents audio artifacts on multi-channel devices like Razer 7.1 headsets
+            if ch >= input_channels {
+                *sample = 0;
+                continue;
+            }
+
+            let idx1 = frame_idx * input_channels + ch;
+            let idx2 = (frame_idx + 1) * input_channels + ch;
 
             let value = if idx2 < audio_data.samples.len() {
                 let sample1 = audio_data.samples[idx1];
@@ -253,9 +267,16 @@ fn write_audio_u16(
         let frac = *index - frame_idx as f64;
 
         for (ch, sample) in frame.iter_mut().enumerate() {
-            let ch_idx = ch % input_channels;
-            let idx1 = frame_idx * input_channels + ch_idx;
-            let idx2 = (frame_idx + 1) * input_channels + ch_idx;
+            // Only map audio to channels that exist in input
+            // Extra output channels (e.g., center, LFE, surround in 5.1/7.1) get silence
+            // This prevents audio artifacts on multi-channel devices like Razer 7.1 headsets
+            if ch >= input_channels {
+                *sample = 32768; // Silence for u16 (mid-point)
+                continue;
+            }
+
+            let idx1 = frame_idx * input_channels + ch;
+            let idx2 = (frame_idx + 1) * input_channels + ch;
 
             let value = if idx2 < audio_data.samples.len() {
                 let sample1 = audio_data.samples[idx1];

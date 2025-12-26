@@ -1,0 +1,416 @@
+# AGENTS.md - Sonic Deck Project Instructions
+
+This file contains project-specific instructions for AI Agents when working on the Sonic Deck codebase.
+
+---
+
+## Project Overview
+
+Sonic Deck is a high-performance desktop soundboard application built with:
+
+- **Frontend**: React 18.2.0 + TypeScript 5.3.3 + Vite 5.0.8 + TailwindCSS 3.4.0
+- **Backend**: Tauri v2 + Rust (cpal + symphonia for audio)
+- **Key Features**: Dual-audio routing, sound library management, waveform visualization, audio trimming
+
+### Tech Stack
+
+#### Frontend
+
+- **Build**: Vite 5.0.8, TypeScript 5.3.3, PostCSS + Autoprefixer
+- **UI**: React 18.2.0, TailwindCSS 3.4.0, Emojibase 17.0.0 (emoji picker)
+- **State**: React hooks (useState, useEffect, custom hooks) - state managed via React Context API
+- **Quality**: ESLint 9.39.2, Prettier 3.7.4, Husky 9.1.7, lint-staged 16.2.7
+
+#### Backend (Rust 2021)
+
+- **Core**: Tauri 2.0, serde (serialization)
+- **Audio**: cpal (I/O), symphonia (decoding: MP3, OGG/Vorbis, M4A/AAC via isomp4)
+- **Logging**: tracing, tracing-subscriber, tracing-appender
+- **Plugins**: tauri-plugin-dialog, tauri-plugin-shell, tauri-plugin-global-shortcut, tauri-plugin-autostart
+
+---
+
+## Code Style & Conventions
+
+### TypeScript/React
+
+- Functional components with hooks only (no classes)
+- Const arrow functions for component definitions
+- TypeScript strict mode - explicit types required
+- **Naming**:
+  - Components: PascalCase (`SoundButton.tsx`)
+  - Hooks: camelCase with `use` prefix (`useAudioPlayback.ts`)
+  - Types: PascalCase (`Sound`, `Category`)
+  - Utils: kebab-case (`hotkeyDisplay.ts`)
+
+### Rust
+
+- `cargo fmt` standard formatting
+- `snake_case` for functions/variables
+- `///` doc comments for public functions
+- Explicit error handling - avoid `unwrap()` in production
+- Use `tracing` for logging (see Logging section)
+
+### General
+
+- Line length: 100 characters max (Prettier/ESLint enforced)
+- Indentation: 2 spaces (TS/TSX), 4 spaces (Rust)
+- **Conventional Commits** (enforced by pre-commit hooks):
+  - `feat:` - New features
+  - `fix:` - Bug fixes
+  - `refactor:` - Code refactoring
+  - `docs:` - Documentation
+  - `chore:` - Maintenance
+  - `test:` - Tests
+
+---
+
+## Development Workflow
+
+### Before Making Changes
+
+1. Read existing code - understand current implementation
+2. Check context: `git log --oneline -10`
+3. Verify baseline: `yarn typecheck`
+4. Rust compilation: `cargo check --manifest-path src-tauri/Cargo.toml`
+
+### Commands
+
+- `yarn dev` - Vite dev server (frontend only)
+- `yarn tauri dev` - Full app with hot reload
+- `yarn typecheck` - TypeScript validation
+- `yarn lint` / `yarn lint:fix` - ESLint
+- `yarn format` - Prettier formatting
+- `yarn tauri build` - Production build
+
+### Git Workflow
+
+**Branching Strategy**: See `Trilium/Boilerplates/Git/8. Branching Strategy` for full details.
+
+- **Branch Types**: `feature/description`, `fix/description`, `chore/description`, `refactor/description`
+- **Never commit to `main`** - always use feature branches
+- **Workflow**: Feature branch → Interactive rebase if needed → PR → Merge commit to main
+- **Interactive Rebase**: `git rebase -i main` before PR to organize/squash commits (especially if chaotic)
+- **Pre-commit hooks**: Automatic lint, format, typecheck (Husky) on every commit
+- **CI/CD**: `.github/workflows/frontend.yml` and `rust.yml` run on `main`, `fix/**`, `feature/**`, `refactor/**` branches. `.github/workflows/release.yml` triggered by version tags.
+- **Merge Strategy**: Squash merge (1 clean commit per PR on main, full history in PR)
+- **Release**: Update version in `version.json` (Single Source of Truth), commit, tag (`v0.X.Y`), push tag
+
+---
+
+## Version Management
+
+**Single Source of Truth**: `version.json` (root directory)
+
+**Key Concept**: Sonic Deck uses a **dual-version system** for MSI compatibility:
+- **Build Version**: Numeric format (e.g., `0.7.0-0`) for MSI installers
+- **Display Version**: User-friendly format (e.g., `v0.7.0-alpha`) composed from `version` + `channel` fields
+
+**Version Mapping**: `-0` = alpha, `-1` = beta, `-2` = rc, no suffix = stable
+
+**Automation**: `scripts/sync-version.js` auto-syncs to `package.json`, `Cargo.toml`, `tauri.conf.json`
+
+📖 **Full details**: See `VERSION.md` for complete workflow, examples, and code usage
+
+---
+
+## Architecture & Project Structure
+
+### State Management
+
+- **React Context API** - global state managed via Context providers
+- Three main contexts: `AudioContext`, `SettingsContext`, `SoundLibraryContext`
+- App.tsx wraps components with Context providers
+- Components consume contexts via custom hooks (`useAudio`, `useSettings`, `useSoundLibrary`)
+- Local state: `useState`/`useReducer` for component-specific needs
+- Side effects: `useEffect` with proper cleanup and dependencies
+
+### Tauri Commands (Frontend ↔ Backend)
+
+- **Commands defined in**: `src-tauri/src/commands/` (modular structure)
+- **Registration**: `.invoke_handler()` in `lib.rs`
+- **Frontend usage**:
+
+  ```typescript
+  import { invoke } from '@tauri-apps/api/core';
+  const result = await invoke<ReturnType>('command_name', { param: value });
+  ```
+
+- **Backend pattern**: Use `#[tauri::command]` attribute
+- Always handle errors on both sides
+
+### Audio System
+
+- **Dual Output**: Simultaneous playback to primary + secondary devices
+- **Caching**: LRU cache (500MB) for decoded audio + waveform data
+- **Trim System**: Non-destructive - stores trim points, applies during playback
+- **Threading**: Each playback runs in dedicated thread (parallel playback)
+- **Pipeline**: File → Symphonia decode → Cache → cpal stream → Dual output
+
+### File Structure
+
+#### Frontend (`src/`)
+
+```text
+src/
+├── components/
+│   ├── audio/         # FullWaveform, MiniWaveform
+│   ├── categories/    # CategoryTabs
+│   ├── common/        # ErrorBoundary, Toast, EmojiPicker
+│   ├── dashboard/     # Dashboard, DashboardHeader, DashboardSoundGrid, SoundButton
+│   ├── modals/        # HotkeyManager, SoundModal, TrimEditor
+│   └── settings/      # Settings, AudioDeviceSettings, PlaybackSettings,
+│                      # SystemTraySettings, SettingsAbout
+├── contexts/          # AudioContext, SettingsContext, SoundLibraryContext
+├── hooks/             # useAudioPlayback, useFileDrop, useHotkeyMappings
+├── utils/             # hotkeyDisplay, waveformQueue
+├── App.tsx            # Root component (Context provider wrapper)
+├── main.tsx           # Entry point
+├── types.ts           # TypeScript type definitions
+└── constants.ts       # Application constants (ANIMATION_DURATIONS, DEBUG)
+```
+
+#### Backend (`src-tauri/src/`)
+
+```text
+src-tauri/src/
+├── audio/             # Audio module
+│   ├── manager.rs     # AudioManager (cache, playback coordination)
+│   ├── playback.rs    # Playback engine (cpal streams)
+│   ├── device.rs      # Device enumeration
+│   ├── decode.rs      # Symphonia integration
+│   ├── cache.rs       # LRU cache
+│   ├── waveform.rs    # Waveform generation
+│   └── error.rs       # Error types
+├── commands/          # Modular command structure
+│   ├── mod.rs         # Module exports
+│   ├── audio.rs       # Audio-related commands
+│   ├── hotkeys.rs     # Hotkey commands
+│   ├── logs.rs        # Logging commands
+│   ├── settings.rs    # Settings commands
+│   └── sounds.rs      # Sound library commands
+├── lib.rs             # App setup and command registration
+├── main.rs            # App entry point
+├── hotkeys.rs         # Global hotkey management
+├── settings.rs        # Settings persistence
+├── sounds.rs          # Sound library management
+└── tray.rs            # System tray
+```
+
+#### Configuration
+
+- `src-tauri/tauri.conf.json` - Tauri app config
+- `src-tauri/capabilities/main-capability.json` - Tauri v2 permissions
+- `vite.config.ts`, `tsconfig.json`, `tailwind.config.js`, `eslint.config.js`, `.prettierrc`
+- `version.json` - **Centralized Version (NEW v0.7.0+)**
+
+---
+
+## Logging & Debugging
+
+### Frontend Logging
+
+- `console.log/warn/error` for debugging
+- Set `DEBUG = true` in `src/constants.ts` for development mode
+- Chrome DevTools available (Tauri uses Chromium)
+
+### Rust Logging (CRITICAL - Uses `tracing`, NOT `log`)
+
+- **Location**: `%LOCALAPPDATA%\com.sonicdeck.app\logs\sonicdeck.YYYY-MM-DD.log`
+- **Daily rotation**: Last 7 days retained
+- **Usage**:
+
+  ```rust
+  use tracing::{info, warn, error, debug, trace};
+
+  info!("User initiated playback for sound: {}", sound_id);
+  warn!("Device {} not found, using default", device_name);
+  error!("Failed to decode audio: {:?}", err);
+  debug!("Detailed flow info");
+  trace!("Very verbose debugging");
+  ```
+
+- **Levels**:
+  - `info`: User actions, successful operations
+  - `warn`: Recoverable issues, fallbacks
+  - `error`: Failures, critical issues
+  - `debug`: Detailed flow (dev only)
+  - `trace`: Very verbose (dev only)
+
+### Debugging Tools
+
+- **Verbose logging**: `RUST_LOG=debug yarn tauri dev`
+- **App-specific**: `RUST_LOG=sonicdeck=trace yarn tauri dev`
+- **Quick debug**: `dbg!()` macro (remove before commit)
+- **Compilation check**: `cargo check`
+
+### Audio Debugging
+
+- Verify device selection, supported formats (MP3, OGG/Vorbis, M4A/AAC)
+- Check cpal stream status, buffer underruns in logs
+- Test dual-output configuration with different devices
+
+---
+
+## Known Issues & Roadmap
+
+**Known Limitations**:
+- No automated tests yet (manual testing required)
+- Format support limited to symphonia (MP3, OGG/Vorbis, M4A/AAC)
+- Global hotkeys may conflict with other apps
+- Waveform generation CPU-intensive for large files
+
+**Focus Areas for Testing**: Audio playback, device switching, file import, trim editor, hotkeys
+
+📋 **Roadmap & Issues**: See git history and CHANGELOG.md for current development focus
+
+---
+
+## Common Tasks
+
+### Add Tauri Command
+
+1. Add function with `#[tauri::command]` in appropriate `src-tauri/src/commands/*.rs` file
+   - Audio commands → `commands/audio.rs`
+   - Settings commands → `commands/settings.rs`
+   - Sound library commands → `commands/sounds.rs`
+   - Hotkey commands → `commands/hotkeys.rs`
+   - Logging commands → `commands/logs.rs`
+2. Export function in `commands/mod.rs` via `pub use module_name::function_name;`
+3. Register in `lib.rs` via `.invoke_handler(tauri::generate_handler![...])`
+4. Add TypeScript types in `src/types.ts`
+5. Use `invoke()` from frontend
+
+### Add Sound Property
+
+1. Update `Sound` interface in `src/types.ts`
+2. Update Rust `Sound` struct in `src-tauri/src/sounds.rs`
+3. Ensure serde serialization works
+4. Update UI components
+5. Update settings persistence
+
+### Modify Audio Playback
+
+- Changes in `src-tauri/src/audio/` must handle:
+  - Dual device output
+  - Volume control (primary/secondary)
+  - Trim boundaries
+  - Error handling (device disconnect, decode failure)
+  - Proper logging
+
+### Add Audio Format
+
+1. Update decoder in `src-tauri/src/audio/decode.rs`
+2. Add symphonia features in `Cargo.toml` if needed
+3. Update file dialogs to show new format
+4. Test thoroughly
+
+### Add Hotkey Action
+
+1. Define action in `src-tauri/src/hotkeys.rs`
+2. Implement handler in hotkey event listener
+3. Add UI in `src/components/modals/HotkeyManager.tsx`
+4. Update `useHotkeyMappings.ts` and `src/utils/hotkeyDisplay.ts`
+
+### Modify UI Styling
+
+- Prefer TailwindCSS utility classes
+- Add to `src/index.css` only if absolutely necessary
+- Use `tailwind.config.js` for theme customization
+- Follow Discord-inspired dark theme
+- Use `ANIMATION_DURATIONS` from `constants.ts`
+
+---
+
+## Performance & Best Practices
+
+### Frontend Performance
+
+- Use `useMemo`, `useCallback` to prevent re-renders
+- `React.memo()` for expensive components
+- Debounce expensive operations (search, waveform)
+- Waveform queue prevents UI blocking
+
+### Backend Performance
+
+- Audio decode in background threads (never block main)
+- LRU cache (500MB) prevents redundant decoding
+- Efficient data structures (HashMap for lookups, Vec for iteration)
+- Minimize IPC calls
+- Pre-compute waveforms during decode
+
+### User Experience
+
+- Loading states for async operations
+- Clear error messages via Toast
+- Consistent animation timing (`ANIMATION_DURATIONS`)
+- Drag-and-drop support
+- Keyboard navigation
+
+### Accessibility
+
+- ARIA labels for screen readers
+- Keyboard-only navigation support
+- Semantic HTML
+- Sufficient color contrast
+
+### Security
+
+- Tauri v2 capabilities system (`src-tauri/capabilities/main-capability.json`)
+- Validate all user inputs (frontend + backend)
+- No telemetry - completely offline
+- Local-only data storage
+
+---
+
+## Testing & Quality Assurance
+
+### Pre-Commit Checklist (Auto-enforced by Husky)
+
+1. `yarn typecheck` - No TypeScript errors
+2. `yarn lint` - No ESLint errors
+3. `cargo check --manifest-path src-tauri/Cargo.toml` - Rust compiles
+4. `yarn tauri dev` - App runs
+5. Manual testing of changed functionality
+
+### Testing Resources
+
+- `docs/TESTING_GUIDE_EN.html` / `docs/TESTING_GUIDE_DE.html`
+- Windows audio setup references in `docs/` (playback, recording, microphone)
+- Discord integration screenshots in `docs/`
+
+---
+
+## Dependencies
+
+### Adding Dependencies
+
+- **Frontend**: `yarn add <package>` (prod) or `yarn add -D <package>` (dev)
+- **Backend**: Add to `src-tauri/Cargo.toml`
+- Check license compatibility (prefer MIT/Apache-2.0)
+
+### Updating
+
+- `yarn upgrade-interactive` (frontend)
+- `cargo update` (backend)
+- Test thoroughly after updates (especially Tauri, React, audio libs)
+
+---
+
+## Resources
+
+- **Tauri**: <https://v2.tauri.app/>
+- **React**: <https://react.dev/>
+- **TailwindCSS**: <https://tailwindcss.com/docs>
+- **Rust**: <https://doc.rust-lang.org/book/>
+- **cpal**: <https://docs.rs/cpal/>
+- **symphonia**: <https://docs.rs/symphonia/>
+- **Tauri Security**: <https://v2.tauri.app/security/>
+
+---
+
+## Contact
+
+- GitHub Issues: <https://github.com/DraneLixX/Sonic-Deck/issues>
+- Contact: Adrian Konopczynski (<adrikonop@gmail.com>)
+- Review git history: `git log --all --grep="keyword"`
