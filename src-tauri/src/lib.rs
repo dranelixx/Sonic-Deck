@@ -39,6 +39,10 @@ fn normalize_hotkey_string(hotkey: &str) -> String {
                 key if key.starts_with("numpad") => {
                     format!("NumPad{}", capitalize_first(&key[6..]))
                 }
+                // Handle Digit keys: digit0 -> 0, digit1 -> 1, etc.
+                key if key.starts_with("digit") => key[5..].to_string(),
+                // Handle Key prefix: keya -> A, keyb -> B, etc.
+                key if key.starts_with("key") => key[3..].to_uppercase(),
                 // Capitalize first letter for all other keys
                 other => capitalize_first(other),
             }
