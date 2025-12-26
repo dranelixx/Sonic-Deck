@@ -101,15 +101,20 @@ Sonic Deck is a high-performance desktop soundboard application built with:
 - **Release Workflow**:
   1. When ready for release: Create PR from `develop` to `main`
   2. CI runs: Frontend + Rust checks + **Claude Code Review**
-  3. After approval: Squash merge to `main`
-  4. Update version in `version.json`, tag (`v0.X.Y`), push tag
+  3. After Claude Review approval: Add version bump commit to PR
+  4. Update `version.json` in PR, commit: `chore: bump version to vX.Y.Z`
+  5. Squash merge to `main` (includes version bump)
+  6. Create tag (`git tag vX.Y.Z`), push tag (`git push --tags`)
 - **Interactive Rebase**: `git rebase -i develop` before PR to organize/squash commits (especially if chaotic)
 - **Pre-commit hooks**: Automatic lint, format, typecheck (Husky) on every commit
 - **CI/CD**:
   - Frontend/Rust checks: Run on `main`, `develop`, `fix/**`, `feature/**`, `refactor/**` branches and PRs to `main`/`develop`
   - Claude Code Review: **Only** on PRs to `main` (saves runner minutes)
   - Release workflow: Triggered by version tags
-- **Merge Strategy**: Squash merge (1 clean commit per PR, full history in PR)
+- **Merge Strategy**:
+  - PRs to `develop`: **Merge commit** (preserves full commit history)
+  - PRs to `main` (releases): **Squash merge** (1 clean commit, includes version bump)
+  - Version bump: Added to PR after Claude Code Review approval, before squash merge
 
 ---
 
