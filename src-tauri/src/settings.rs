@@ -60,7 +60,7 @@ impl Default for AppSettings {
 pub fn get_settings_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
     let app_data_dir = app_handle
         .path()
-        .app_data_dir()
+        .app_local_data_dir()
         .map_err(|e| format!("Failed to get app data directory: {}", e))?;
 
     // Ensure directory exists
@@ -88,15 +88,12 @@ pub fn load(app_handle: &tauri::AppHandle) -> Result<AppSettings, String> {
     Ok(settings)
 }
 
-/// Save application settings to disk
+/// Save application settings to disk (atomic write)
 pub fn save(settings: &AppSettings, app_handle: &tauri::AppHandle) -> Result<(), String> {
     let settings_path = get_settings_path(app_handle)?;
 
     let json = serde_json::to_string_pretty(settings)
         .map_err(|e| format!("Failed to serialize settings: {}", e))?;
 
-    std::fs::write(&settings_path, json)
-        .map_err(|e| format!("Failed to write settings file: {}", e))?;
-
-    Ok(())
+    crate::persistence::atomic_write(&settings_path, &json)
 }

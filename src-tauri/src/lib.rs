@@ -5,6 +5,7 @@
 mod audio;
 mod commands;
 mod hotkeys;
+mod persistence;
 mod settings;
 mod sounds;
 mod state;

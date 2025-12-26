@@ -17,7 +17,7 @@ pub struct HotkeyMappings {
 pub fn get_hotkeys_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
     let app_data_dir = app_handle
         .path()
-        .app_data_dir()
+        .app_local_data_dir()
         .map_err(|e| format!("Failed to get app data directory: {}", e))?;
 
     // Ensure directory exists
@@ -45,15 +45,14 @@ pub fn load(app_handle: &tauri::AppHandle) -> Result<HotkeyMappings, String> {
     Ok(mappings)
 }
 
-/// Save hotkey mappings to disk
+/// Save hotkey mappings to disk (atomic write)
 pub fn save(mappings: &HotkeyMappings, app_handle: &tauri::AppHandle) -> Result<(), String> {
     let hotkeys_path = get_hotkeys_path(app_handle)?;
 
     let json = serde_json::to_string_pretty(mappings)
         .map_err(|e| format!("Failed to serialize hotkeys: {}", e))?;
 
-    std::fs::write(&hotkeys_path, json)
-        .map_err(|e| format!("Failed to write hotkeys file: {}", e))?;
+    crate::persistence::atomic_write(&hotkeys_path, &json)?;
 
     tracing::debug!("Hotkey mappings saved to {:?}", hotkeys_path);
     Ok(())
