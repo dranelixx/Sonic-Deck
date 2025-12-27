@@ -10,6 +10,10 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Parse CLI arguments
+const args = process.argv.slice(2);
+const isDryRun = args.includes('--dry-run');
+
 /**
  * SemVer pattern for SonicDeck build versions
  * Format: X.Y.Z or X.Y.Z-N where N is 0 (alpha), 1 (beta), or 2 (rc)
@@ -43,12 +47,22 @@ function readJsonFile(filePath, description) {
 }
 
 /**
- * Write a JSON file safely
+ * Write a JSON file safely (or show diff in dry-run mode)
  * @param {string} filePath - Path to the JSON file
  * @param {object} data - Data to write
  * @param {string} description - Description for logging
+ * @param {string} oldVersion - Previous version for diff display
+ * @param {string} newVersion - New version for diff display
  */
-function writeJsonFile(filePath, data, description) {
+function writeJsonFile(filePath, data, description, oldVersion, newVersion) {
+  if (isDryRun) {
+    if (oldVersion === newVersion) {
+      console.log(`  ${description}: already at ${newVersion}`);
+    } else {
+      console.log(`  ${description}: ${oldVersion} → ${newVersion}`);
+    }
+    return;
+  }
   try {
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf-8');
     console.log(`✅ Updated ${description}`);
@@ -74,12 +88,22 @@ function readFile(filePath, description) {
 }
 
 /**
- * Write a file safely
+ * Write a file safely (or show diff in dry-run mode)
  * @param {string} filePath - Path to the file
  * @param {string} content - Content to write
  * @param {string} description - Description for logging
+ * @param {string} oldVersion - Previous version for diff display
+ * @param {string} newVersion - New version for diff display
  */
-function writeFile(filePath, content, description) {
+function writeFile(filePath, content, description, oldVersion, newVersion) {
+  if (isDryRun) {
+    if (oldVersion === newVersion) {
+      console.log(`  ${description}: already at ${newVersion}`);
+    } else {
+      console.log(`  ${description}: ${oldVersion} → ${newVersion}`);
+    }
+    return;
+  }
   try {
     fs.writeFileSync(filePath, content, 'utf-8');
     console.log(`✅ Updated ${description}`);
@@ -102,18 +126,28 @@ if (!isValidVersion(version)) {
   process.exit(1);
 }
 
-console.log(`📦 Syncing version to: ${version}`);
+if (isDryRun) {
+  console.log(`🔍 Dry run: Would sync version to ${version}\n`);
+} else {
+  console.log(`📦 Syncing version to: ${version}\n`);
+}
 
 // 1. Update package.json
 const packageJsonPath = path.join(__dirname, '../package.json');
 const packageJson = readJsonFile(packageJsonPath, 'package.json');
+const oldPackageVersion = packageJson.version;
 packageJson.version = version;
-writeJsonFile(packageJsonPath, packageJson, 'package.json');
+writeJsonFile(packageJsonPath, packageJson, 'package.json', oldPackageVersion, version);
 
 // 2. Update src-tauri/Cargo.toml
 // Use regex that targets only the [package] section to avoid modifying dependency versions
 const cargoTomlPath = path.join(__dirname, '../src-tauri/Cargo.toml');
 let cargoToml = readFile(cargoTomlPath, 'src-tauri/Cargo.toml');
+
+// Extract current version from Cargo.toml
+const cargoVersionExtractRegex = /\[package\][\s\S]*?^version\s*=\s*"([^"]+)"/m;
+const cargoMatch = cargoToml.match(cargoVersionExtractRegex);
+const oldCargoVersion = cargoMatch ? cargoMatch[1] : 'unknown';
 
 // Match version line only within [package] section (before the next section starts)
 const cargoVersionRegex = /(\[package\][\s\S]*?^version\s*=\s*)"[^"]+"/m;
@@ -122,12 +156,17 @@ if (!cargoVersionRegex.test(cargoToml)) {
   process.exit(1);
 }
 cargoToml = cargoToml.replace(cargoVersionRegex, `$1"${version}"`);
-writeFile(cargoTomlPath, cargoToml, 'src-tauri/Cargo.toml');
+writeFile(cargoTomlPath, cargoToml, 'src-tauri/Cargo.toml', oldCargoVersion, version);
 
 // 3. Update src-tauri/tauri.conf.json
 const tauriConfPath = path.join(__dirname, '../src-tauri/tauri.conf.json');
 const tauriConf = readJsonFile(tauriConfPath, 'src-tauri/tauri.conf.json');
+const oldTauriVersion = tauriConf.version;
 tauriConf.version = version;
-writeJsonFile(tauriConfPath, tauriConf, 'src-tauri/tauri.conf.json');
+writeJsonFile(tauriConfPath, tauriConf, 'src-tauri/tauri.conf.json', oldTauriVersion, version);
 
-console.log(`\n✨ Version sync complete: ${version}\n`);
+if (isDryRun) {
+  console.log(`\n✨ Dry run complete. No files were modified.\n`);
+} else {
+  console.log(`\n✨ Version sync complete: ${version}\n`);
+}
