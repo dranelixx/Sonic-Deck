@@ -13,7 +13,7 @@ mod waveform;
 pub use cache::CacheStats;
 pub use device::enumerate_devices;
 pub use error::AudioError;
-pub use manager::AudioManager;
+pub use manager::{AudioManager, SoundState};
 pub use playback::create_playback_stream;
 pub use waveform::{generate_peaks, WaveformData};
 

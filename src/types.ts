@@ -24,6 +24,17 @@ export interface AppSettings {
 }
 
 // ============================================================================
+// Playback Types
+// ============================================================================
+
+/** Result of play_dual_output indicating what action was taken */
+export interface PlaybackResult {
+  playback_id: string | null;
+  action: "started" | "restarted" | "ignored";
+  stopped_playback_id: string | null;
+}
+
+// ============================================================================
 // Sound Library Types
 // ============================================================================
 

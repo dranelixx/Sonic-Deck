@@ -174,17 +174,36 @@ fn handle_global_shortcut(
         volume,
         sound.trim_start_ms,
         sound.trim_end_ms,
+        Some(sound.id.as_str().to_owned()),
         manager,
         app.clone(),
     ) {
-        Ok(playback_id) => {
-            tracing::info!(
-                "Hotkey '{}' triggered sound '{}' (playback: {})",
-                normalized_hotkey,
-                sound.name,
-                playback_id
-            );
-        }
+        Ok(result) => match result.action.as_str() {
+            "ignored" => {
+                tracing::debug!(
+                    "Hotkey '{}' ignored - sound '{}' already playing",
+                    normalized_hotkey,
+                    sound.name
+                );
+            }
+            "restarted" => {
+                tracing::info!(
+                    "Hotkey '{}' restarted sound '{}' (playback: {:?}, stopped: {:?})",
+                    normalized_hotkey,
+                    sound.name,
+                    result.playback_id,
+                    result.stopped_playback_id
+                );
+            }
+            _ => {
+                tracing::info!(
+                    "Hotkey '{}' triggered sound '{}' (playback: {:?})",
+                    normalized_hotkey,
+                    sound.name,
+                    result.playback_id
+                );
+            }
+        },
         Err(e) => {
             tracing::error!("Failed to play sound from hotkey: {}", e);
         }
@@ -272,6 +291,7 @@ pub fn run() {
             commands::stop_playback,
             commands::clear_audio_cache,
             commands::get_cache_stats,
+            commands::preload_sounds,
             commands::get_logs_path,
             commands::read_logs,
             commands::clear_logs,

@@ -8,6 +8,27 @@ use std::sync::{Arc, Mutex};
 
 use super::cache::{AudioCache, CacheStats};
 
+/// State of an active sound playback
+#[derive(Clone, Debug)]
+pub enum SoundState {
+    /// Sound is being decoded (not audible yet)
+    Decoding { playback_id: String },
+    /// Sound is actively playing (audible)
+    Playing {
+        playback_id: String,
+        started_at: std::time::Instant,
+    },
+}
+
+impl SoundState {
+    pub fn playback_id(&self) -> &str {
+        match self {
+            SoundState::Decoding { playback_id } => playback_id,
+            SoundState::Playing { playback_id, .. } => playback_id,
+        }
+    }
+}
+
 /// Manages audio playback state, active streams, and audio cache
 pub struct AudioManager {
     /// Stop signals for active playbacks (send () to stop)
@@ -16,6 +37,8 @@ pub struct AudioManager {
     playback_counter: Arc<Mutex<u64>>,
     /// LRU cache for decoded audio data
     cache: Arc<Mutex<AudioCache>>,
+    /// Active sound_id -> SoundState mapping for policy enforcement
+    active_sounds: Arc<Mutex<HashMap<String, SoundState>>>,
 }
 
 impl AudioManager {
@@ -24,6 +47,7 @@ impl AudioManager {
             stop_senders: Arc::new(Mutex::new(HashMap::new())),
             playback_counter: Arc::new(Mutex::new(0)),
             cache: Arc::new(Mutex::new(AudioCache::default())),
+            active_sounds: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -33,6 +57,7 @@ impl AudioManager {
             stop_senders: Arc::new(Mutex::new(HashMap::new())),
             playback_counter: Arc::new(Mutex::new(0)),
             cache: Arc::new(Mutex::new(AudioCache::new(max_memory_mb))),
+            active_sounds: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -93,6 +118,33 @@ impl AudioManager {
     /// Get a clone of the stop_senders Arc for use in spawned threads
     pub fn get_stop_senders(&self) -> Arc<Mutex<HashMap<String, Sender<()>>>> {
         self.stop_senders.clone()
+    }
+
+    /// Returns the current state of a sound for playback policy enforcement.
+    ///
+    /// Used to determine if a sound is currently decoding or playing,
+    /// which affects how new play requests for the same sound are handled.
+    pub fn get_sound_state(&self, sound_id: &str) -> Option<SoundState> {
+        self.active_sounds.lock().unwrap().get(sound_id).cloned()
+    }
+
+    /// Registers a sound as currently decoding (not yet audible).
+    ///
+    /// Called at the start of playback before audio streams are created.
+    /// The state transitions to `Playing` once streams are ready.
+    pub fn register_sound_decoding(&self, sound_id: String, playback_id: String) {
+        self.active_sounds
+            .lock()
+            .unwrap()
+            .insert(sound_id, SoundState::Decoding { playback_id });
+    }
+
+    /// Returns a thread-safe reference to the active sounds map.
+    ///
+    /// Used by playback threads to update sound state (Decoding -> Playing)
+    /// and clean up when playback completes.
+    pub fn get_active_sounds(&self) -> Arc<Mutex<HashMap<String, SoundState>>> {
+        self.active_sounds.clone()
     }
 }
 

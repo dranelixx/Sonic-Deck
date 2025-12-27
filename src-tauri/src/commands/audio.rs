@@ -14,9 +14,11 @@ use std::time::Duration;
 
 use cpal::traits::HostTrait;
 use tauri::{Emitter, State};
-use tracing::error;
+use tracing::{debug, error, info};
 
-use crate::audio::{self, AudioDevice, AudioManager, CacheStats, DeviceId, WaveformData};
+use crate::audio::{
+    self, AudioDevice, AudioManager, CacheStats, DeviceId, SoundState, WaveformData,
+};
 
 /// Playback progress event payload
 #[derive(Clone, serde::Serialize)]
@@ -33,6 +35,17 @@ pub fn list_audio_devices() -> Result<Vec<AudioDevice>, String> {
     audio::enumerate_devices().map_err(Into::into)
 }
 
+/// Result of play_dual_output indicating what action was taken
+#[derive(Clone, serde::Serialize)]
+pub struct PlaybackResult {
+    /// The playback ID (if playback started)
+    pub playback_id: Option<String>,
+    /// Action taken: "started", "restarted", "ignored"
+    pub action: String,
+    /// Previous playback ID that was stopped (if restarted)
+    pub stopped_playback_id: Option<String>,
+}
+
 /// Plays an audio file simultaneously to two different output devices
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
@@ -43,13 +56,55 @@ pub fn play_dual_output(
     volume: f32,
     trim_start_ms: Option<u64>,
     trim_end_ms: Option<u64>,
+    sound_id: Option<String>,
     manager: State<'_, AudioManager>,
     app_handle: tauri::AppHandle,
-) -> Result<String, String> {
+) -> Result<PlaybackResult, String> {
     let volume = volume.clamp(0.0, 1.0);
+    let sound_id = sound_id.unwrap_or_default();
 
-    // Generate playback ID
+    // Minimum time a sound must AUDIBLY play before it can be restarted
+    // Lower = more responsive/snappy, but too low may cause audio glitches
+    const MIN_PLAY_TIME_MS: u64 = 15;
+
+    // Generate playback ID first
     let playback_id = manager.next_playback_id();
+
+    // Check if this sound is already active and apply policy
+    let mut stopped_playback_id: Option<String> = None;
+    if !sound_id.is_empty() {
+        if let Some(current_state) = manager.get_sound_state(&sound_id) {
+            let current_playback_id = current_state.playback_id().to_string();
+
+            // Check cooldown only if sound is actually playing (audible)
+            let should_apply_cooldown = match &current_state {
+                SoundState::Playing { started_at, .. } => {
+                    (started_at.elapsed().as_millis() as u64) < MIN_PLAY_TIME_MS
+                }
+                SoundState::Decoding { .. } => false, // No cooldown during decoding
+            };
+
+            if should_apply_cooldown {
+                debug!(
+                    "Cooldown: Ignoring trigger for {} (still in cooldown)",
+                    sound_id
+                );
+                return Ok(PlaybackResult {
+                    playback_id: None,
+                    action: "ignored".to_string(),
+                    stopped_playback_id: None,
+                });
+            }
+
+            // Restart sound (works for both Decoding and Playing states)
+            info!("Restarting {} (was {})", sound_id, current_playback_id);
+            manager.register_sound_decoding(sound_id.clone(), playback_id.clone());
+            stopped_playback_id = Some(current_playback_id);
+        } else {
+            // No current playback, register as decoding
+            manager.register_sound_decoding(sound_id.clone(), playback_id.clone());
+        }
+    }
 
     // Create stop channel
     let (stop_tx, stop_rx) = mpsc::channel();
@@ -63,16 +118,42 @@ pub fn play_dual_output(
     // Clone for the thread
     let playback_id_clone = playback_id.clone();
     let manager_inner = manager.get_stop_senders();
+    let active_sounds = manager.get_active_sounds();
     let cache = manager.get_cache();
+    let sound_id_clone = sound_id.clone();
+    let old_playback_to_stop = stopped_playback_id.clone();
 
     // Spawn dedicated playback thread (including decoding to avoid blocking UI)
     thread::spawn(move || {
+        // Helper to clean up on early return (before playback starts)
+        let cleanup_early =
+            |manager_inner: &Arc<Mutex<std::collections::HashMap<String, _>>>,
+             active_sounds: &Arc<Mutex<std::collections::HashMap<String, SoundState>>>,
+             playback_id: &str,
+             sound_id: &str| {
+                manager_inner.lock().unwrap().remove(playback_id);
+                if !sound_id.is_empty() {
+                    let mut sounds = active_sounds.lock().unwrap();
+                    // Only remove if this is still our playback
+                    if let Some(state) = sounds.get(sound_id) {
+                        if state.playback_id() == playback_id {
+                            sounds.remove(sound_id);
+                        }
+                    }
+                }
+            };
+
         // Get audio from cache or decode (cache handles the logic)
         let audio_data = match cache.lock().unwrap().get_or_decode(&file_path) {
             Ok(data) => data, // Already Arc<AudioData>
             Err(e) => {
                 error!("Failed to decode audio: {}", e);
-                manager_inner.lock().unwrap().remove(&playback_id_clone);
+                cleanup_early(
+                    &manager_inner,
+                    &active_sounds,
+                    &playback_id_clone,
+                    &sound_id_clone,
+                );
                 // Emit error event
                 if let Err(emit_err) =
                     app_handle.emit("audio-decode-error", format!("Failed to decode: {}", e))
@@ -95,7 +176,12 @@ pub fn play_dual_output(
             Ok(devices) => devices.collect(),
             Err(e) => {
                 error!("Failed to enumerate devices: {}", e);
-                manager_inner.lock().unwrap().remove(&playback_id_clone);
+                cleanup_early(
+                    &manager_inner,
+                    &active_sounds,
+                    &playback_id_clone,
+                    &sound_id_clone,
+                );
                 return;
             }
         };
@@ -109,7 +195,12 @@ pub fn play_dual_output(
                 if let Err(e) = app_handle.emit("audio-device-error", error_msg) {
                     error!("Failed to emit device error event: {}", e);
                 }
-                manager_inner.lock().unwrap().remove(&playback_id_clone);
+                cleanup_early(
+                    &manager_inner,
+                    &active_sounds,
+                    &playback_id_clone,
+                    &sound_id_clone,
+                );
                 return;
             }
         };
@@ -117,7 +208,12 @@ pub fn play_dual_output(
         let (Some(device_1), Some(device_2)) = (output_devices.get(idx1), output_devices.get(idx2))
         else {
             error!("Devices not found at indices {} and {}", idx1, idx2);
-            manager_inner.lock().unwrap().remove(&playback_id_clone);
+            cleanup_early(
+                &manager_inner,
+                &active_sounds,
+                &playback_id_clone,
+                &sound_id_clone,
+            );
             return;
         };
 
@@ -138,7 +234,12 @@ pub fn play_dual_output(
             Ok(s) => s,
             Err(e) => {
                 error!("Failed to create stream 1: {}", e);
-                manager_inner.lock().unwrap().remove(&playback_id_clone);
+                cleanup_early(
+                    &manager_inner,
+                    &active_sounds,
+                    &playback_id_clone,
+                    &sound_id_clone,
+                );
                 return;
             }
         };
@@ -153,10 +254,45 @@ pub fn play_dual_output(
             Ok(s) => s,
             Err(e) => {
                 error!("Failed to create stream 2: {}", e);
-                manager_inner.lock().unwrap().remove(&playback_id_clone);
+                cleanup_early(
+                    &manager_inner,
+                    &active_sounds,
+                    &playback_id_clone,
+                    &sound_id_clone,
+                );
                 return;
             }
         };
+
+        // Streams created successfully - NOW the sound is audible!
+        // Stop the old playback NOW (seamless transition, no audio gap)
+        if let Some(ref old_id) = old_playback_to_stop {
+            if let Some(sender) = manager_inner.lock().unwrap().remove(old_id) {
+                let _ = sender.send(());
+                debug!("Stopped old playback {} (new one ready)", old_id);
+            }
+        }
+
+        // Transition from Decoding to Playing state
+        if !sound_id_clone.is_empty() {
+            let mut sounds = active_sounds.lock().unwrap();
+            if let Some(state) = sounds.get(&sound_id_clone) {
+                // Only update if this is still our playback
+                if state.playback_id() == playback_id_clone {
+                    sounds.insert(
+                        sound_id_clone.clone(),
+                        SoundState::Playing {
+                            playback_id: playback_id_clone.clone(),
+                            started_at: std::time::Instant::now(),
+                        },
+                    );
+                    debug!(
+                        "Sound {} now playing (playback {})",
+                        sound_id_clone, playback_id_clone
+                    );
+                }
+            }
+        }
 
         // Calculate duration (with trim)
         let total_frames = audio_data.samples.len() / audio_data.channels as usize;
@@ -168,8 +304,10 @@ pub fn play_dual_output(
         let total_sleep_ms = (duration_secs * 1000.0) as u64;
 
         // Wait for completion or stop signal, emitting progress events
-        let check_interval = Duration::from_millis(50); // 50ms for smoother progress updates
+        let check_interval = Duration::from_millis(10); // 10ms for fast stop response
+        let progress_interval = 50u64; // Emit progress every 50ms
         let mut elapsed_ms = 0u64;
+        let mut last_progress_ms = 0u64;
 
         while elapsed_ms < total_sleep_ms {
             // Check for stop signal
@@ -178,21 +316,24 @@ pub fn play_dual_output(
             }
 
             thread::sleep(check_interval);
-            elapsed_ms += 50;
+            elapsed_ms += 10;
 
-            // Emit progress event
-            let progress_pct =
-                ((elapsed_ms as f64 / total_sleep_ms as f64) * 100.0).min(100.0) as u8;
-            if let Err(e) = app_handle.emit(
-                "playback-progress",
-                PlaybackProgress {
-                    playback_id: playback_id_clone.clone(),
-                    elapsed_ms,
-                    total_ms: total_sleep_ms,
-                    progress_pct,
-                },
-            ) {
-                error!("Failed to emit progress event: {}", e);
+            // Emit progress event every 50ms (not every 10ms check)
+            if elapsed_ms - last_progress_ms >= progress_interval {
+                last_progress_ms = elapsed_ms;
+                let progress_pct =
+                    ((elapsed_ms as f64 / total_sleep_ms as f64) * 100.0).min(100.0) as u8;
+                if let Err(e) = app_handle.emit(
+                    "playback-progress",
+                    PlaybackProgress {
+                        playback_id: playback_id_clone.clone(),
+                        elapsed_ms,
+                        total_ms: total_sleep_ms,
+                        progress_pct,
+                    },
+                ) {
+                    error!("Failed to emit progress event: {}", e);
+                }
             }
         }
 
@@ -209,9 +350,30 @@ pub fn play_dual_output(
 
         // Remove from manager last
         manager_inner.lock().unwrap().remove(&playback_id_clone);
+
+        // Remove from active sounds tracking ONLY if this playback is still the current one
+        // (prevents race condition when a newer playback has already replaced us)
+        if !sound_id_clone.is_empty() {
+            let mut sounds = active_sounds.lock().unwrap();
+            if let Some(state) = sounds.get(&sound_id_clone) {
+                if state.playback_id() == playback_id_clone {
+                    sounds.remove(&sound_id_clone);
+                }
+            }
+        }
     });
 
-    Ok(playback_id)
+    let action = if stopped_playback_id.is_some() {
+        "restarted"
+    } else {
+        "started"
+    };
+
+    Ok(PlaybackResult {
+        playback_id: Some(playback_id),
+        action: action.to_string(),
+        stopped_playback_id,
+    })
 }
 
 /// Stops all currently playing audio
@@ -262,4 +424,24 @@ pub fn get_waveform(
     // Generate waveform peaks
     let waveform = audio::generate_peaks(&audio_data, num_peaks);
     Ok(waveform)
+}
+
+/// Preload audio files into cache (background, non-blocking)
+/// Call this when switching categories to ensure sounds are ready
+#[tauri::command]
+pub fn preload_sounds(file_paths: Vec<String>, manager: State<'_, AudioManager>) {
+    let cache = manager.get_cache();
+
+    // Spawn background thread to preload without blocking UI
+    thread::spawn(move || {
+        for path in file_paths {
+            let mut cache_guard = cache.lock().unwrap();
+            if cache_guard.get_or_decode(&path).is_ok() {
+                debug!("Preloaded: {}", path);
+            }
+            // Release lock between files to not block playback
+            drop(cache_guard);
+        }
+        debug!("Preload complete");
+    });
 }

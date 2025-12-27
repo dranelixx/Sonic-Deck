@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { Sound } from "../types";
+import { Sound, PlaybackResult } from "../types";
 import { DEBUG, ANIMATION_DURATIONS } from "../constants";
 
 // Playback progress event payload (matches Rust struct)
@@ -62,109 +62,63 @@ export function useAudioPlayback({
           `Ref state:`,
           Array.from(playingSoundsRef.current.entries())
         );
-        console.log(`Playing IDs:`, Array.from(playingSoundIds));
       }
 
-      // Check ref for immediate state
-      const currentPlaybackId = playingSoundsRef.current.get(sound.id);
-      const shouldRestart = !!currentPlaybackId;
-
-      if (DEBUG)
-        console.log(
-          `Should restart: ${shouldRestart}, Playback ID: ${currentPlaybackId || "NONE"}`
-        );
-
-      if (shouldRestart && currentPlaybackId) {
-        if (DEBUG)
-          console.log(
-            `[RESTART] Restarting: ${sound.name} (${currentPlaybackId})`
-          );
-
-        try {
-          await invoke("stop_playback", { playbackId: currentPlaybackId });
-          if (DEBUG)
-            console.log(`[STOP] Stopped playback: ${currentPlaybackId}`);
-
-          // Clean up tracking
-          playingSoundsRef.current.delete(sound.id);
-          setPlayingSoundIds((prev) => {
-            const next = new Set(prev);
-            next.delete(sound.id);
-            return next;
-          });
-
-          // Wait for cleanup
-          await new Promise((resolve) =>
-            setTimeout(resolve, ANIMATION_DURATIONS.CLEANUP_DELAY)
-          );
-          if (DEBUG) console.log(`[CLEANUP] Cleanup complete`);
-        } catch (err) {
-          console.error("Failed to stop playback:", err);
-        }
-      } else {
-        if (DEBUG) console.log(`[PLAY] Starting fresh playback`);
-      }
-
-      // Start playback
+      // Start playback - backend handles policy (restart/ignore)
       try {
-        setPlayingSoundIds((prev) => new Set(prev).add(sound.id));
-
         const playbackVolume = sound.volume ?? volume;
 
-        const playbackId = await invoke<string>("play_dual_output", {
+        const result = await invoke<PlaybackResult>("play_dual_output", {
           filePath: sound.file_path,
           deviceId1: device1,
           deviceId2: device2,
           volume: playbackVolume,
           trimStartMs: sound.trim_start_ms,
           trimEndMs: sound.trim_end_ms,
+          soundId: sound.id,
         });
 
-        if (DEBUG)
-          console.log(
-            `[PLAY] Started playback: ${playbackId} for ${sound.name}`
-          );
+        if (DEBUG) {
+          console.log(`[PLAY] Result: ${result.action}`, result);
+        }
 
-        // Track in ref
-        playingSoundsRef.current.set(sound.id, playbackId);
+        // Handle based on action taken by backend
+        if (result.action === "ignored") {
+          if (DEBUG) console.log(`[IGNORED] Sound already playing`);
+          return;
+        }
 
-        // Set active waveform for header display
-        setActiveWaveform((prev) => {
-          // If no waveform is active, show this sound
-          if (!prev) {
-            return {
-              soundId: sound.id,
-              soundName: sound.name,
-              filePath: sound.file_path,
-              currentTimeMs: 0,
-              durationMs: 0, // Will be updated by progress events
-              trimStartMs: sound.trim_start_ms ?? null,
-              trimEndMs: sound.trim_end_ms ?? null,
-            };
+        // If restarted, clean up old tracking first
+        if (result.action === "restarted" && result.stopped_playback_id) {
+          if (DEBUG) {
+            console.log(
+              `[RESTART] Stopped ${result.stopped_playback_id}, starting new`
+            );
           }
-          // If waveform is for a sound that's no longer playing, replace it
-          if (!playingSoundsRef.current.has(prev.soundId)) {
-            return {
-              soundId: sound.id,
-              soundName: sound.name,
-              filePath: sound.file_path,
-              currentTimeMs: 0,
-              durationMs: 0,
-              trimStartMs: sound.trim_start_ms ?? null,
-              trimEndMs: sound.trim_end_ms ?? null,
-            };
+        }
+
+        // Track new playback
+        if (result.playback_id) {
+          setPlayingSoundIds((prev) => new Set(prev).add(sound.id));
+          playingSoundsRef.current.set(sound.id, result.playback_id);
+
+          if (DEBUG) {
+            console.log(
+              `[PLAY] Started playback: ${result.playback_id} for ${sound.name}`
+            );
           }
-          // Always switch to the newest sound
-          return {
+
+          // Set active waveform for header display
+          setActiveWaveform({
             soundId: sound.id,
             soundName: sound.name,
             filePath: sound.file_path,
             currentTimeMs: 0,
-            durationMs: 0,
+            durationMs: 0, // Will be updated by progress events
             trimStartMs: sound.trim_start_ms ?? null,
             trimEndMs: sound.trim_end_ms ?? null,
-          };
-        });
+          });
+        }
       } catch (error) {
         console.error(`Playback error:`, error);
         showToast(`Error: ${error}`);
