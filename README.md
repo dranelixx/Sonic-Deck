@@ -7,6 +7,7 @@ Designed for gamers, streamers, and content creators who need professional audio
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Version](https://img.shields.io/badge/version-0.8.0--alpha-orange)](https://github.com/DraneLixX/SonicDeck/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows-blue)](https://github.com/DraneLixX/SonicDeck)
+[![Coverage](https://codecov.io/gh/dranelixx/SonicDeck/branch/main/graph/badge.svg)](https://codecov.io/gh/dranelixx/SonicDeck)
 
 > **Status:** Currently in beta testing - [Download Latest Release](https://github.com/DraneLixX/SonicDeck/releases)
 

@@ -1,0 +1,17 @@
+# Codecov Configuration for SonicDeck
+# Docs: https://docs.codecov.com/docs/codecovyml-reference
+
+coverage:
+  status:
+    project:
+      default:
+        target: 70%
+        threshold: 2%  # Allow 2% fluctuation
+    patch:
+      default:
+        target: 70%  # New code changes must have 70% coverage
+
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: true

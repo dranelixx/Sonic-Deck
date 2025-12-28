@@ -446,6 +446,28 @@ cd src-tauri && cargo test
 - `test_stereo.ogg` - 1s, 48kHz, Stereo
 - `test_stereo.m4a` - 1s, 48kHz, Stereo
 
+### Code Coverage
+
+**Tool:** cargo-llvm-cov (LLVM-based source coverage)
+
+**Run locally:**
+```bash
+# Generate coverage report (opens in browser)
+cd src-tauri && cargo llvm-cov --html --open
+
+# With threshold check (same as CI)
+cd src-tauri && cargo llvm-cov --fail-under-lines 70
+
+# Generate LCOV report
+cd src-tauri && cargo llvm-cov --lcov --output-path lcov.info
+```
+
+**CI Integration:**
+- Coverage is automatically generated on PRs
+- Minimum threshold: 70% line coverage
+- Reports on Codecov: https://codecov.io/gh/dranelixx/SonicDeck
+- HTML reports available as CI artifacts
+
 ### Pre-Commit Checklist (Auto-enforced by Husky)
 
 1. `yarn typecheck` - No TypeScript errors
