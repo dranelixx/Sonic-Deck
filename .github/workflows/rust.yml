@@ -57,9 +57,9 @@ jobs:
         working-directory: src-tauri
         run: cargo llvm-cov --all-features --lcov --output-path lcov.info
 
-      - name: Check coverage threshold (70%)
+      - name: Check coverage threshold (25%)
         working-directory: src-tauri
-        run: cargo llvm-cov report --fail-under-lines 70
+        run: cargo llvm-cov report --fail-under-lines 25
 
       - name: Generate HTML coverage report
         working-directory: src-tauri

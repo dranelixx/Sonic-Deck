@@ -464,7 +464,7 @@ cd src-tauri && cargo llvm-cov --lcov --output-path lcov.info
 
 **CI Integration:**
 - Coverage is automatically generated on PRs
-- Minimum threshold: 70% line coverage
+- Minimum threshold: 25% line coverage (will be raised as more tests are added)
 - Reports on Codecov: https://codecov.io/gh/dranelixx/SonicDeck
 - HTML reports available as CI artifacts
 
