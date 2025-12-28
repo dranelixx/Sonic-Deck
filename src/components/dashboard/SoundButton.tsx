@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import { Sound, HotkeyMapping } from "../../types";
 import HotkeyManager from "../modals/HotkeyManager";
 import { formatHotkeyForDisplay } from "../../utils/hotkeyDisplay";
@@ -17,7 +17,7 @@ interface SoundButtonProps {
   onHotkeyChanged: () => void;
 }
 
-export default function SoundButton({
+function SoundButtonComponent({
   sound,
   isPlaying,
   onPlay,
@@ -201,3 +201,6 @@ export default function SoundButton({
     </div>
   );
 }
+
+const SoundButton = memo(SoundButtonComponent);
+export default SoundButton;
