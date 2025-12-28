@@ -62,6 +62,16 @@ pub fn create_playback_stream(
     // Calculate sample rate ratio for resampling
     let rate_ratio = audio_data.sample_rate as f64 / output_sample_rate as f64;
 
+    // Log if resampling is occurring (quality impact)
+    if audio_data.sample_rate != output_sample_rate {
+        info!(
+            audio_sample_rate = audio_data.sample_rate,
+            output_sample_rate = output_sample_rate,
+            rate_ratio = format!("{:.4}", rate_ratio),
+            "Sample rate conversion active"
+        );
+    }
+
     // Try to build stream with low-latency config, fallback to default if it fails
     let (stream, used_buffer_size) = build_stream_with_fallback(
         device,
