@@ -1,7 +1,7 @@
 {
-  "version": "0.8.0-0",
+  "version": "0.8.1-0",
   "prerelease": true,
   "channel": "alpha",
   "releaseDate": "2025-12-28",
-  "description": "Low-latency audio engine with seamless restart and comprehensive tracing"
+  "description": "Dependency updates and maintenance"
 }
