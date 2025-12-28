@@ -48,6 +48,7 @@ SonicDeck is a high-performance desktop soundboard application built with:
 - `cargo fmt` standard formatting
 - `snake_case` for functions/variables
 - `///` doc comments for public functions
+- `///` doc comments for complex private functions (>20 lines or non-trivial logic)
 - Explicit error handling - avoid `unwrap()` in production
 - Use `tracing` for logging (see Logging section)
 

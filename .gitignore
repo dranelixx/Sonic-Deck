@@ -8,6 +8,7 @@ release//
 /src-tauri/Cargo.lock
 /src-tauri/WixTools/
 /src-tauri/gen/
+prs.json
 
 # Node / Yarn
 node_modules/
