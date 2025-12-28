@@ -2,6 +2,9 @@
 //!
 //! Generates amplitude peaks for visualization.
 
+use std::time::Instant;
+use tracing::debug;
+
 use super::AudioData;
 
 /// Waveform data for visualization
@@ -15,6 +18,7 @@ pub struct WaveformData {
 
 /// Generate waveform peaks from audio data
 pub fn generate_peaks(audio_data: &AudioData, num_peaks: usize) -> WaveformData {
+    let start = Instant::now();
     let channels = audio_data.channels as usize;
     let total_frames = audio_data.samples.len() / channels;
 
@@ -60,6 +64,15 @@ pub fn generate_peaks(audio_data: &AudioData, num_peaks: usize) -> WaveformData 
             *peak /= max_peak;
         }
     }
+
+    let generation_time = start.elapsed().as_millis();
+    debug!(
+        duration_ms = generation_time,
+        num_peaks = num_peaks,
+        total_frames = total_frames,
+        audio_duration_ms = duration_ms,
+        "Waveform generation complete"
+    );
 
     WaveformData { peaks, duration_ms }
 }
