@@ -4,6 +4,58 @@
 
 Designed for gamers, streamers, and content creators who need professional audio routing with minimal latency. SonicDeck features a sleek, Discord-inspired dark theme and powerful audio management tools.
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/version-0.8.0--alpha-orange)](https://github.com/DraneLixX/SonicDeck/releases)
+[![Platform](https://img.shields.io/badge/platform-Windows-blue)](https://github.com/DraneLixX/SonicDeck)
+
+> **Status:** Currently in beta testing - [Download Latest Release](https://github.com/DraneLixX/SonicDeck/releases)
+
+---
+
+## 📸 Screenshots
+
+### Main Dashboard
+![SonicDeck Dashboard](docs/screenshots/dashboard.jpg)
+*Clean, Discord-inspired dark theme with organized sound categories and waveform visualization*
+
+### Audio Trimming & Waveform Editor
+![Trim Editor](docs/screenshots/trim_editor.jpg)
+*Non-destructive audio trimming with real-time waveform preview and precise controls*
+
+### Settings & Configuration
+<details>
+<summary>Click to view all settings panels</summary>
+
+![Settings - Audio Devices](docs/screenshots/settings_1.jpg)
+*Audio device configuration with dual-output routing*
+
+![Settings - Playback & System Tray](docs/screenshots/settings_2.jpg)
+*Playback settings and system tray integration*
+
+![Settings - About](docs/screenshots/settings_3.jpg)
+*App information and external links*
+
+</details>
+
+### Hotkey Assignment
+<details>
+<summary>Click to view hotkey assignment flow</summary>
+
+![Hotkey Manager - Step 1](docs/screenshots/assing_hotkey_1.jpg)
+*Assign global hotkeys to sounds*
+
+![Hotkey Manager - Step 2](docs/screenshots/assing_hotkey_2.jpg)
+*Press any key combination to assign*
+
+![Hotkey Manager - Step 3](docs/screenshots/assing_hotkey_3.jpg)
+*Hotkey successfully assigned and saved*
+
+</details>
+
+### Sound Editing
+![Edit Sound](docs/screenshots/edit_sound.jpg)
+*Edit sound properties: name, icon, category, and volume*
+
 ---
 
 ## ✨ Features
@@ -102,9 +154,38 @@ If you're passionate about design and want to contribute to an open-source proje
 
 ---
 
-## 🚀 Getting Started
+## 📥 Installation (For Users)
 
-> **Note**: SonicDeck is currently in **beta testing** with all core features complete. I'm actively gathering feedback and fixing bugs!
+> **Note**: SonicDeck is currently in **beta testing**. Download the latest release and help us improve!
+
+### Windows Installation
+
+1. **Download the latest release:**
+   - Go to [Releases](https://github.com/DraneLixX/SonicDeck/releases)
+   - Download `SonicDeck_X.X.X_x64-setup.exe` (NSIS installer) or `SonicDeck_X.X.X_x64_en-US.msi` (MSI installer)
+
+2. **Install:**
+   - Run the installer
+   - Follow the installation wizard
+   - Launch SonicDeck from Start Menu or Desktop shortcut
+
+3. **Enable Debug Mode (for bug reports):**
+   - Right-click SonicDeck shortcut → Properties
+   - In "Target" field, add `--debug` after `.exe`
+   - Example: `"C:\Program Files\SonicDeck\SonicDeck.exe" --debug`
+   - This enables detailed logging for troubleshooting
+
+### First Launch
+- Configure your audio devices in Settings
+- Import sounds via drag & drop
+- Assign hotkeys to your favorite sounds
+- See [Testing Guide](docs/testing/TESTING_GUIDE_EN.html) for detailed setup
+
+---
+
+## 🛠️ Development Setup
+
+> **For contributors:** Follow these steps to set up your development environment.
 
 ### Prerequisites
 
@@ -136,15 +217,21 @@ If you're passionate about design and want to contribute to an open-source proje
 
 ## 🤝 Contributing
 
-Contributions are welcome! If you have ideas for new features, improvements, or bug fixes, please feel free to:
+Contributions are welcome! Whether you're fixing bugs, adding features, testing, or creating visual assets - we appreciate your help!
 
-1. Fork the repository.
-2. Create a new feature branch (`git checkout -b feature/AmazingFeature`).
-3. Commit your changes (`git commit -m 'feat: Add some AmazingFeature'`).
-4. Push to the branch (`git push origin feature/AmazingFeature`).
-5. Open a Pull Request.
+**Ways to contribute:**
+- 🐛 Report bugs with detailed logs
+- 🧪 Beta test and provide feedback
+- 🎨 Create visual assets (we're looking for an artist!)
+- 💻 Submit code improvements
+- 📝 Improve documentation
 
-Please make sure your code adheres to the project's conventions and includes tests where applicable.
+**Please read [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines** on:
+- Development workflow (Git Flow)
+- Code style and conventions
+- Commit message format
+- Testing procedures
+- Community guidelines
 
 ## 📄 License
 
