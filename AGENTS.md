@@ -8,7 +8,7 @@ This file contains project-specific instructions for AI Agents when working on t
 
 SonicDeck is a high-performance desktop soundboard application built with:
 
-- **Frontend**: React 19.2.3 + TypeScript 5.3.3 + Vite 5.0.8 + TailwindCSS 3.4.0
+- **Frontend**: React 19.2.3 + TypeScript 5.3.3 + Vite 7.3.0 + TailwindCSS 3.4.0
 - **Backend**: Tauri v2 + Rust (cpal + symphonia for audio)
 - **Key Features**: Dual-audio routing, sound library management, waveform visualization, audio trimming
 
@@ -16,7 +16,7 @@ SonicDeck is a high-performance desktop soundboard application built with:
 
 #### Frontend
 
-- **Build**: Vite 5.0.8, TypeScript 5.3.3, PostCSS + Autoprefixer
+- **Build**: Vite 7.3.0, TypeScript 5.3.3, PostCSS + Autoprefixer
 - **UI**: React 19.2.3, TailwindCSS 3.4.0, Emojibase 17.0.0 (emoji picker)
 - **State**: React hooks (useState, useEffect, custom hooks) - state managed via React Context API
 - **Quality**: ESLint 9.39.2, Prettier 3.7.4, Husky 9.1.7, lint-staged 16.2.7
