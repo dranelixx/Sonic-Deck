@@ -3,12 +3,16 @@
 //! Handles cpal stream creation with sample rate conversion using linear interpolation.
 
 use cpal::traits::{DeviceTrait, StreamTrait};
-use cpal::{Device, Stream};
+use cpal::{BufferSize, Device, SampleRate, Stream, StreamConfig};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
-use tracing::{debug, error, warn};
+use tracing::{debug, error, info, warn};
 
 use super::{AudioData, AudioError};
+
+/// Preferred buffer size for low-latency playback.
+/// 256 samples @ 48kHz = ~5.3ms latency per buffer.
+const PREFERRED_BUFFER_SIZE: u32 = 256;
 
 /// Create and start a playback stream on a specific device
 pub fn create_playback_stream(
@@ -23,13 +27,20 @@ pub fn create_playback_stream(
 
     debug!(device = %device_name, "Creating playback stream");
 
-    let config = device
+    let supported_config = device
         .default_output_config()
         .map_err(|e| AudioError::DeviceConfig(e.to_string()))?;
 
-    let output_sample_rate = config.sample_rate().0;
-    let channels = config.channels() as usize;
-    let sample_format = config.sample_format();
+    let output_sample_rate = supported_config.sample_rate().0;
+    let channels = supported_config.channels() as usize;
+    let sample_format = supported_config.sample_format();
+
+    // Create low-latency stream config with fixed buffer size
+    let stream_config = StreamConfig {
+        channels: supported_config.channels(),
+        sample_rate: SampleRate(output_sample_rate),
+        buffer_size: BufferSize::Fixed(PREFERRED_BUFFER_SIZE),
+    };
 
     // Log channel mapping for multi-channel devices
     if channels > audio_data.channels as usize {
@@ -51,14 +62,122 @@ pub fn create_playback_stream(
     // Calculate sample rate ratio for resampling
     let rate_ratio = audio_data.sample_rate as f64 / output_sample_rate as f64;
 
-    let stream = match config.sample_format() {
-        cpal::SampleFormat::F32 => {
-            let audio_data = audio_data.clone();
-            let sample_index = sample_index.clone();
-            let volume = volume.clone();
-            let end_frame = end_frame_arc.clone();
-            device.build_output_stream(
-                &config.into(),
+    // Try to build stream with low-latency config, fallback to default if it fails
+    let (stream, used_buffer_size) = build_stream_with_fallback(
+        device,
+        sample_format,
+        &stream_config,
+        &supported_config,
+        audio_data,
+        sample_index,
+        volume,
+        end_frame_arc,
+        channels,
+        rate_ratio,
+    )?;
+
+    stream
+        .play()
+        .map_err(|e| AudioError::StreamStart(e.to_string()))?;
+
+    let duration_ms = start.elapsed().as_millis();
+    info!(
+        device = %device_name,
+        sample_rate = output_sample_rate,
+        channels = channels,
+        buffer_size = ?used_buffer_size,
+        sample_format = ?sample_format,
+        duration_ms = duration_ms,
+        "Playback stream created"
+    );
+
+    Ok(stream)
+}
+
+/// Buffer size options for fallback strategy
+const FALLBACK_BUFFER_SIZES: [u32; 3] = [256, 512, 1024];
+
+/// Build output stream with fallback to larger buffer sizes or default config
+#[allow(clippy::too_many_arguments)]
+fn build_stream_with_fallback(
+    device: &Device,
+    sample_format: cpal::SampleFormat,
+    low_latency_config: &StreamConfig,
+    default_config: &cpal::SupportedStreamConfig,
+    audio_data: Arc<AudioData>,
+    sample_index: Arc<Mutex<f64>>,
+    volume: Arc<Mutex<f32>>,
+    end_frame: Arc<usize>,
+    channels: usize,
+    rate_ratio: f64,
+) -> Result<(Stream, String), AudioError> {
+    // Try each buffer size in order
+    for &buffer_size in &FALLBACK_BUFFER_SIZES {
+        let config = StreamConfig {
+            channels: low_latency_config.channels,
+            sample_rate: low_latency_config.sample_rate,
+            buffer_size: BufferSize::Fixed(buffer_size),
+        };
+
+        match try_build_stream(
+            device,
+            sample_format,
+            &config,
+            audio_data.clone(),
+            sample_index.clone(),
+            volume.clone(),
+            end_frame.clone(),
+            channels,
+            rate_ratio,
+        ) {
+            Ok(stream) => {
+                if buffer_size != PREFERRED_BUFFER_SIZE {
+                    warn!(
+                        buffer_size = buffer_size,
+                        preferred = PREFERRED_BUFFER_SIZE,
+                        "Using fallback buffer size"
+                    );
+                }
+                return Ok((stream, format!("Fixed({})", buffer_size)));
+            }
+            Err(_) => continue,
+        }
+    }
+
+    // Final fallback: use default config
+    warn!("Fixed buffer sizes failed, using device default");
+    let stream = try_build_stream(
+        device,
+        sample_format,
+        &default_config.clone().into(),
+        audio_data,
+        sample_index,
+        volume,
+        end_frame,
+        channels,
+        rate_ratio,
+    )?;
+
+    Ok((stream, "Default".to_string()))
+}
+
+/// Try to build a stream with the given config
+#[allow(clippy::too_many_arguments)]
+fn try_build_stream(
+    device: &Device,
+    sample_format: cpal::SampleFormat,
+    config: &StreamConfig,
+    audio_data: Arc<AudioData>,
+    sample_index: Arc<Mutex<f64>>,
+    volume: Arc<Mutex<f32>>,
+    end_frame: Arc<usize>,
+    channels: usize,
+    rate_ratio: f64,
+) -> Result<Stream, AudioError> {
+    match sample_format {
+        cpal::SampleFormat::F32 => device
+            .build_output_stream(
+                config,
                 move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
                     let vol = *volume.lock().unwrap();
                     write_audio_f32(
@@ -74,14 +193,10 @@ pub fn create_playback_stream(
                 |err| error!("Stream error: {}", err),
                 None,
             )
-        }
-        cpal::SampleFormat::I16 => {
-            let audio_data = audio_data.clone();
-            let sample_index = sample_index.clone();
-            let volume = volume.clone();
-            let end_frame = end_frame_arc.clone();
-            device.build_output_stream(
-                &config.into(),
+            .map_err(|e| AudioError::StreamBuild(e.to_string())),
+        cpal::SampleFormat::I16 => device
+            .build_output_stream(
+                config,
                 move |data: &mut [i16], _: &cpal::OutputCallbackInfo| {
                     let vol = *volume.lock().unwrap();
                     write_audio_i16(
@@ -97,14 +212,10 @@ pub fn create_playback_stream(
                 |err| error!("Stream error: {}", err),
                 None,
             )
-        }
-        cpal::SampleFormat::U16 => {
-            let audio_data = audio_data.clone();
-            let sample_index = sample_index.clone();
-            let volume = volume.clone();
-            let end_frame = end_frame_arc.clone();
-            device.build_output_stream(
-                &config.into(),
+            .map_err(|e| AudioError::StreamBuild(e.to_string())),
+        cpal::SampleFormat::U16 => device
+            .build_output_stream(
+                config,
                 move |data: &mut [u16], _: &cpal::OutputCallbackInfo| {
                     let vol = *volume.lock().unwrap();
                     write_audio_u16(
@@ -120,26 +231,9 @@ pub fn create_playback_stream(
                 |err| error!("Stream error: {}", err),
                 None,
             )
-        }
-        _ => return Err(AudioError::UnsupportedFormat),
+            .map_err(|e| AudioError::StreamBuild(e.to_string())),
+        _ => Err(AudioError::UnsupportedFormat),
     }
-    .map_err(|e| AudioError::StreamBuild(e.to_string()))?;
-
-    stream
-        .play()
-        .map_err(|e| AudioError::StreamStart(e.to_string()))?;
-
-    let duration_ms = start.elapsed().as_millis();
-    debug!(
-        device = %device_name,
-        sample_rate = output_sample_rate,
-        channels = channels,
-        sample_format = ?sample_format,
-        duration_ms = duration_ms,
-        "Playback stream created and started"
-    );
-
-    Ok(stream)
 }
 
 /// Write audio data to f32 output buffer with resampling (linear interpolation)
