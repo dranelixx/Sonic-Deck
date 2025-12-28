@@ -98,10 +98,7 @@ fn test_mp3_has_valid_header() {
     let has_id3 = bytes.len() >= 3 && &bytes[0..3] == b"ID3";
     let has_frame_sync = bytes.len() >= 2 && bytes[0] == 0xFF && (bytes[1] & 0xE0) == 0xE0;
 
-    assert!(
-        has_id3 || has_frame_sync,
-        "MP3 file has invalid header"
-    );
+    assert!(has_id3 || has_frame_sync, "MP3 file has invalid header");
 }
 
 #[test]
