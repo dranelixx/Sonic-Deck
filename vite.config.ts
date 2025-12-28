@@ -1,4 +1,5 @@
 import { defineConfig } from "vite";
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import fs from "fs";
 import path from "path";
@@ -14,7 +15,7 @@ try {
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [tailwindcss(), react()],
   define: {
     "import.meta.env.VITE_APP_VERSION": JSON.stringify(versionData.version),
     "import.meta.env.VITE_APP_CHANNEL": JSON.stringify(versionData.channel),

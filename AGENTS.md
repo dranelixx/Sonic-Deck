@@ -8,7 +8,7 @@ This file contains project-specific instructions for AI Agents when working on t
 
 SonicDeck is a high-performance desktop soundboard application built with:
 
-- **Frontend**: React 19.2.3 + TypeScript 5.3.3 + Vite 7.3.0 + TailwindCSS 3.4.0
+- **Frontend**: React 19.2.3 + TypeScript 5.3.3 + Vite 7.3.0 + TailwindCSS 4.1.18
 - **Backend**: Tauri v2 + Rust (cpal + symphonia for audio)
 - **Key Features**: Dual-audio routing, sound library management, waveform visualization, audio trimming
 
@@ -16,8 +16,8 @@ SonicDeck is a high-performance desktop soundboard application built with:
 
 #### Frontend
 
-- **Build**: Vite 7.3.0, TypeScript 5.3.3, PostCSS + Autoprefixer
-- **UI**: React 19.2.3, TailwindCSS 3.4.0, Emojibase 17.0.0 (emoji picker)
+- **Build**: Vite 7.3.0, TypeScript 5.3.3, @tailwindcss/vite
+- **UI**: React 19.2.3, TailwindCSS 4.1.18, Emojibase 17.0.0 (emoji picker)
 - **State**: React hooks (useState, useEffect, custom hooks) - state managed via React Context API
 - **Quality**: ESLint 9.39.2, Prettier 3.7.4, Husky 9.1.7, lint-staged 16.2.7
 
@@ -250,7 +250,7 @@ src-tauri/src/
 
 - `src-tauri/tauri.conf.json` - Tauri app config
 - `src-tauri/capabilities/main-capability.json` - Tauri v2 permissions
-- `vite.config.ts`, `tsconfig.json`, `tailwind.config.js`, `eslint.config.js`, `.prettierrc`
+- `vite.config.ts`, `tsconfig.json`, `eslint.config.js`, `.prettierrc`
 - `version.json` - **Centralized Version (NEW v0.7.0+)**
 
 ---
@@ -375,8 +375,7 @@ When starting new work, check the "Now/Next/Later" note first for current priori
 ### Modify UI Styling
 
 - Prefer TailwindCSS utility classes
-- Add to `src/index.css` only if absolutely necessary
-- Use `tailwind.config.js` for theme customization
+- Use `@theme` in `src/index.css` for theme customization (TailwindCSS 4 CSS-first config)
 - Follow Discord-inspired dark theme
 - Use `ANIMATION_DURATIONS` from `constants.ts`
 
