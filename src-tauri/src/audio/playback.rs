@@ -496,3 +496,116 @@ fn write_audio_u16(
         *index += rate_ratio;
     }
 }
+
+/// Calculate scaled volume with square root curve and base attenuation.
+///
+/// Applies a square root curve for more natural volume perception,
+/// with a 0.2 base multiplier for safe default volume (20% of full amplitude).
+///
+/// # Arguments
+/// * `volume` - Input volume from 0.0 to 1.0
+///
+/// # Returns
+/// Scaled volume value (0.0 to 0.2 range)
+#[inline]
+#[cfg_attr(not(test), allow(dead_code))]
+pub(crate) fn calculate_scaled_volume(volume: f32) -> f32 {
+    volume.sqrt() * 0.2
+}
+
+/// Linear interpolation between two samples.
+///
+/// # Arguments
+/// * `sample1` - First sample value
+/// * `sample2` - Second sample value
+/// * `frac` - Interpolation fraction (0.0 = sample1, 1.0 = sample2)
+///
+/// # Returns
+/// Interpolated sample value
+#[inline]
+#[cfg_attr(not(test), allow(dead_code))]
+pub(crate) fn lerp_sample(sample1: f32, sample2: f32, frac: f32) -> f32 {
+    sample1 + (sample2 - sample1) * frac
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Volume curve tests
+    #[test]
+    fn test_volume_curve_zero() {
+        let result = calculate_scaled_volume(0.0);
+        assert!((result - 0.0).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_volume_curve_full() {
+        let result = calculate_scaled_volume(1.0);
+        assert!((result - 0.2).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_volume_curve_half() {
+        // sqrt(0.5) * 0.2 ≈ 0.1414
+        let result = calculate_scaled_volume(0.5);
+        let expected = 0.5_f32.sqrt() * 0.2;
+        assert!((result - expected).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_volume_curve_quarter() {
+        // sqrt(0.25) * 0.2 = 0.5 * 0.2 = 0.1
+        let result = calculate_scaled_volume(0.25);
+        assert!((result - 0.1).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_volume_curve_monotonic() {
+        // Volume curve should be monotonically increasing
+        let mut prev = 0.0;
+        for i in 0..=100 {
+            let vol = i as f32 / 100.0;
+            let result = calculate_scaled_volume(vol);
+            assert!(result >= prev);
+            prev = result;
+        }
+    }
+
+    // Linear interpolation tests
+    #[test]
+    fn test_lerp_sample_start() {
+        let result = lerp_sample(1.0, 2.0, 0.0);
+        assert!((result - 1.0).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_lerp_sample_end() {
+        let result = lerp_sample(1.0, 2.0, 1.0);
+        assert!((result - 2.0).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_lerp_sample_middle() {
+        let result = lerp_sample(1.0, 3.0, 0.5);
+        assert!((result - 2.0).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_lerp_sample_quarter() {
+        let result = lerp_sample(0.0, 4.0, 0.25);
+        assert!((result - 1.0).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_lerp_sample_negative() {
+        let result = lerp_sample(-1.0, 1.0, 0.5);
+        assert!((result - 0.0).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_lerp_sample_same_values() {
+        let result = lerp_sample(5.0, 5.0, 0.7);
+        assert!((result - 5.0).abs() < 0.0001);
+    }
+}

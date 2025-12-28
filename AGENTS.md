@@ -317,7 +317,6 @@ When starting new work, check the "Now/Next/Later" note first for current priori
 ## Known Issues & Roadmap
 
 **Known Limitations**:
-- No automated tests yet (manual testing required)
 - Format support limited to symphonia (MP3, OGG/Vorbis, M4A/AAC)
 - Global hotkeys may conflict with other apps
 - Waveform generation CPU-intensive for large files
@@ -424,13 +423,37 @@ When starting new work, check the "Now/Next/Later" note first for current priori
 
 ## Testing & Quality Assurance
 
+### Automated Tests (Rust)
+
+Run all tests:
+```bash
+cd src-tauri && cargo test
+```
+
+**Unit Tests** (inline `#[cfg(test)]` modules):
+- `audio/cache.rs` - LRU cache logic, eviction, invalidation
+- `audio/waveform.rs` - Peak generation, normalization, duration
+- `audio/manager.rs` - State machine, playback IDs, stop signals
+- `audio/playback.rs` - Volume curve, linear interpolation
+- `audio/mod.rs` - DeviceId parsing and formatting
+- `persistence.rs` - Atomic file writes
+
+**Integration Tests** (`src-tauri/tests/`):
+- `audio_decode.rs` - Test fixture validation (MP3, OGG, M4A)
+
+**Test Fixtures**: `src-tauri/tests/fixtures/`
+- `test_mono.mp3` - 1s, 44.1kHz, Mono
+- `test_stereo.ogg` - 1s, 48kHz, Stereo
+- `test_stereo.m4a` - 1s, 48kHz, Stereo
+
 ### Pre-Commit Checklist (Auto-enforced by Husky)
 
 1. `yarn typecheck` - No TypeScript errors
 2. `yarn lint` - No ESLint errors
 3. `cargo check --manifest-path src-tauri/Cargo.toml` - Rust compiles
-4. `yarn tauri dev` - App runs
-5. Manual testing of changed functionality
+4. `cargo test --manifest-path src-tauri/Cargo.toml` - All tests pass
+5. `yarn tauri dev` - App runs
+6. Manual testing of changed functionality
 
 ### Testing Resources
 

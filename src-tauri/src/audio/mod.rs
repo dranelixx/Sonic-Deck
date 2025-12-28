@@ -68,3 +68,79 @@ pub struct AudioData {
     pub sample_rate: u32,
     pub channels: u16,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_device_id_from_index() {
+        let id = DeviceId::from_index(0);
+        assert_eq!(id.as_str(), "device_0");
+
+        let id2 = DeviceId::from_index(42);
+        assert_eq!(id2.as_str(), "device_42");
+    }
+
+    #[test]
+    fn test_device_id_index_parsing() {
+        let id = DeviceId::from_index(5);
+        let index = id.index().unwrap();
+        assert_eq!(index, 5);
+    }
+
+    #[test]
+    fn test_device_id_index_parsing_large() {
+        let id = DeviceId::from_index(999);
+        let index = id.index().unwrap();
+        assert_eq!(index, 999);
+    }
+
+    #[test]
+    fn test_device_id_invalid_format() {
+        let id = DeviceId("invalid".to_string());
+        let result = id.index();
+        assert!(result.is_err());
+
+        if let Err(AudioError::InvalidDeviceId(s)) = result {
+            assert_eq!(s, "invalid");
+        } else {
+            panic!("Expected InvalidDeviceId error");
+        }
+    }
+
+    #[test]
+    fn test_device_id_invalid_prefix() {
+        let id = DeviceId("audio_0".to_string());
+        assert!(id.index().is_err());
+    }
+
+    #[test]
+    fn test_device_id_invalid_number() {
+        let id = DeviceId("device_abc".to_string());
+        assert!(id.index().is_err());
+    }
+
+    #[test]
+    fn test_device_id_display() {
+        let id = DeviceId::from_index(7);
+        assert_eq!(format!("{}", id), "device_7");
+    }
+
+    #[test]
+    fn test_device_id_equality() {
+        let id1 = DeviceId::from_index(3);
+        let id2 = DeviceId::from_index(3);
+        let id3 = DeviceId::from_index(4);
+
+        assert_eq!(id1, id2);
+        assert_ne!(id1, id3);
+    }
+
+    #[test]
+    fn test_device_id_clone() {
+        let id1 = DeviceId::from_index(5);
+        let id2 = id1.clone();
+        assert_eq!(id1, id2);
+    }
+}
