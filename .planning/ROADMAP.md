@@ -16,7 +16,7 @@ None
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Test Coverage** - Expand Rust and Frontend tests for a solid foundation
+- [x] **Phase 1: Test Coverage** - Expand Rust and Frontend tests for a solid foundation
 - [ ] **Phase 2: VB-Cable Integration** - Auto-detection and silent install for Discord routing
 - [ ] **Phase 3: Audio Core Polish** - Volume Engine V2 and LUFS normalization
 - [ ] **Phase 4: Auto-Updater** - Seamless updates via Tauri updater
@@ -32,8 +32,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: TBD
 
 **Issues:**
-- [ ] #77 Improve Rust unit test coverage
-- [ ] #75 Add frontend component tests
+- [x] #77 Improve Rust unit test coverage
+- [x] #75 Add frontend component tests
 
 ### Phase 2: VB-Cable Integration
 **Goal**: Automatic VB-Cable detection and silent installation for seamless dual-output
@@ -98,7 +98,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Test Coverage | 2/3 | In progress | - |
+| 1. Test Coverage | 3/3 | Complete | 2025-12-29 |
 | 2. VB-Cable Integration | 0/TBD | Not started | - |
 | 3. Audio Core Polish | 0/TBD | Not started | - |
 | 4. Auto-Updater | 0/TBD | Not started | - |
