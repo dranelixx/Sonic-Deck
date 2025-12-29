@@ -10,6 +10,7 @@ mod settings;
 mod sounds;
 mod state;
 mod tray;
+mod vbcable;
 
 use tauri::Manager;
 use tracing::{error, info};
@@ -315,6 +316,11 @@ pub fn run() {
             commands::add_category,
             commands::update_category,
             commands::delete_category,
+            // VB-Cable integration commands
+            commands::check_vb_cable_status,
+            commands::get_vb_cable_device_name,
+            commands::save_default_audio_device,
+            commands::restore_default_audio_device,
         ])
         .setup(|app| {
             // Initialize app state (load all data from disk once at startup)

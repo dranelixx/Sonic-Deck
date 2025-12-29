@@ -6,12 +6,14 @@
 //! - `hotkeys`: Global hotkey registration and management
 //! - `sounds`: Sound library and category management
 //! - `logs`: Log file access and management
+//! - `vbcable`: VB-Cable detection and default device management
 
 pub mod audio;
 pub mod hotkeys;
 pub mod logs;
 pub mod settings;
 pub mod sounds;
+pub mod vbcable;
 
 // Re-export all commands for easy access in lib.rs
 pub use audio::*;
@@ -19,3 +21,4 @@ pub use hotkeys::*;
 pub use logs::*;
 pub use settings::*;
 pub use sounds::*;
+pub use vbcable::*;
