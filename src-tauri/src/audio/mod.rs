@@ -62,7 +62,7 @@ pub struct AudioDevice {
 }
 
 /// Holds audio data decoded from file
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct AudioData {
     pub samples: Vec<f32>,
     pub sample_rate: u32,
