@@ -48,3 +48,32 @@ jobs:
 
       - name: Rust Compilation check
         run: cd src-tauri && cargo check
+
+      # Code Coverage with cargo-llvm-cov
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Run tests with coverage
+        working-directory: src-tauri
+        run: cargo llvm-cov --all-features --lcov --output-path lcov.info
+
+      - name: Check coverage threshold (20%)
+        working-directory: src-tauri
+        run: cargo llvm-cov report --fail-under-lines 20
+
+      - name: Generate HTML coverage report
+        working-directory: src-tauri
+        run: cargo llvm-cov report --html --output-dir coverage-html
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: src-tauri/lcov.info
+          fail_ci_if_error: true
+
+      - name: Upload HTML coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: src-tauri/coverage-html/
