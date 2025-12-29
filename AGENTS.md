@@ -165,6 +165,8 @@ SonicDeck is a high-performance desktop soundboard application built with:
 
 ## Architecture & Project Structure
 
+> **Deep Dive**: See `.planning/codebase/ARCHITECTURE.md` and `.planning/codebase/STRUCTURE.md` for detailed analysis
+
 ### State Management
 
 - **React Context API** - global state managed via Context providers
@@ -323,6 +325,8 @@ When starting new work, check the "Now/Next/Later" note first for current priori
 
 **Focus Areas for Testing**: Audio playback, device switching, file import, trim editor, hotkeys
 
+**Detailed Analysis**: See `.planning/codebase/CONCERNS.md` for tracked issues with GitHub issue references
+
 ---
 
 ## Common Tasks
@@ -422,6 +426,8 @@ When starting new work, check the "Now/Next/Later" note first for current priori
 ---
 
 ## Testing & Quality Assurance
+
+> **Deep Dive**: See `.planning/codebase/TESTING.md` for test patterns, mocking examples, and coverage details
 
 ### Automated Tests (Rust)
 
@@ -534,6 +540,16 @@ yarn test:coverage
 
 ## Resources
 
+**Codebase Documentation** (`.planning/codebase/`):
+- `STACK.md` - Technologies, dependencies, runtime requirements
+- `ARCHITECTURE.md` - System design, layers, data flow, abstractions
+- `STRUCTURE.md` - Directory layout, naming conventions, where to add code
+- `CONVENTIONS.md` - Code style, naming patterns, error handling
+- `TESTING.md` - Test framework, patterns, coverage, mocking
+- `INTEGRATIONS.md` - External services (currently none - offline app)
+- `CONCERNS.md` - Known bugs, tech debt, security, performance (with issue refs)
+
+**External Documentation**:
 - **Tauri**: <https://v2.tauri.app/>
 - **React**: <https://react.dev/>
 - **TailwindCSS**: <https://tailwindcss.com/docs>
