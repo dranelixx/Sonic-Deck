@@ -112,6 +112,42 @@ VB-Cable module uses `String` errors in many places. This makes error handling l
 
 ---
 
+### ISS-008: SHA256 checksum verification for VB-Cable download
+**GitHub:** [#94](https://github.com/dranelixx/SonicDeck/issues/94)
+**Discovered:** Code Review PR #92
+**Priority:** Low
+**Type:** Enhancement (Security)
+
+**Description:**
+VB-Cable installer downloaded via HTTPS without checksum verification. Adding SHA256 verification would provide defense-in-depth.
+
+**Proposed solution:**
+- Add `sha2` crate dependency
+- Verify downloaded ZIP against known hash
+- Consider: VB-Audio doesn't publish official checksums
+
+**Files:** `src-tauri/src/vbcable/installer.rs`
+
+---
+
+### ISS-009: Improve ring buffer overflow logging with rate limiting
+**GitHub:** [#95](https://github.com/dranelixx/SonicDeck/issues/95)
+**Discovered:** Code Review PR #92
+**Priority:** Low
+**Type:** Enhancement
+
+**Description:**
+Current `overflow_logged` flag prevents repeat warnings but hides persistent problems. Only logs once, even if overflow continues.
+
+**Proposed solution:**
+- Replace single-shot flag with rate-limited logging (every 5 seconds)
+- Persistent problems remain visible in logs
+- Alternative: Reset flag when routing re-enabled
+
+**Files:** `src-tauri/src/vbcable/microphone.rs`
+
+---
+
 ## Resolved Issues
 
 ### ISS-002: Microphone routing latency optimization ✓
