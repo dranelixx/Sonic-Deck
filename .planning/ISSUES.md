@@ -93,6 +93,25 @@ Users cannot see if audio is actually flowing through the microphone routing.
 
 ---
 
+### ISS-007: VbCableError enum for better error handling
+**GitHub:** [#93](https://github.com/dranelixx/SonicDeck/issues/93)
+**Discovered:** Code Review PR #92
+**Priority:** Medium
+**Type:** Enhancement
+**Target:** v1.0-Beta
+
+**Description:**
+VB-Cable module uses `String` errors in many places. This makes error handling less precise and pattern matching difficult.
+
+**Proposed solution:**
+- Create dedicated `VbCableError` enum using `thiserror` crate
+- Replace all String errors with typed variants
+- Benefits: type-safe handling, better pattern matching, consistent errors
+
+**Files:** `src-tauri/src/vbcable/*.rs`
+
+---
+
 ## Resolved Issues
 
 ### ISS-002: Microphone routing latency optimization ✓
@@ -105,4 +124,4 @@ Users cannot see if audio is actually flowing through the microphone routing.
 
 ---
 
-*Last updated: 2025-12-30*
+*Last updated: 2025-12-31*
