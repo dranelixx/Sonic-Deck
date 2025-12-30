@@ -97,3 +97,16 @@ export interface SavedDefaults {
   capture_console: string | null;
   capture_communications: string | null;
 }
+
+/** Details about a failed device restore */
+export interface RestoreFailure {
+  device_role: string;
+  error: string;
+}
+
+/** Result of restoring default devices */
+export interface RestoreResult {
+  restored_count: number;
+  failed_count: number;
+  failures: RestoreFailure[];
+}

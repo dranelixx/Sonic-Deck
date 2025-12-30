@@ -364,7 +364,11 @@ describe("VbCableSettings", () => {
           return Promise.resolve("CABLE Input");
         }
         if (cmd === "restore_all_default_devices") {
-          return Promise.resolve(null);
+          return Promise.resolve({
+            restored_count: 4,
+            failed_count: 0,
+            failures: [],
+          });
         }
         if (cmd === "list_audio_devices") {
           return Promise.resolve([{ id: "cable-1", name: "CABLE Input" }]);

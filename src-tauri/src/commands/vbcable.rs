@@ -3,7 +3,7 @@
 use crate::vbcable::{
     cleanup_temp_files, detect_vb_cable, disable_routing, enable_routing, get_routing_status,
     install_vbcable, list_capture_devices, uninstall_vbcable, wait_for_vb_cable,
-    DefaultDeviceManager, SavedDefaults, VbCableStatus,
+    DefaultDeviceManager, RestoreResult, SavedDefaults, VbCableStatus,
 };
 use tracing::info;
 
@@ -86,8 +86,9 @@ pub fn save_all_default_devices() -> Result<SavedDefaults, String> {
 /// Restore ALL default audio devices
 ///
 /// Call this after VB-Cable installation to restore all user's original defaults.
+/// Returns structured result showing which devices were restored and which failed.
 #[tauri::command]
-pub fn restore_all_default_devices(saved: SavedDefaults) -> Result<(), String> {
+pub fn restore_all_default_devices(saved: SavedDefaults) -> RestoreResult {
     info!("Restoring all default audio devices");
     DefaultDeviceManager::restore_all_defaults(&saved)
 }

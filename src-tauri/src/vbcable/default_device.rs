@@ -20,6 +20,9 @@ use windows::Win32::System::Com::{
     CoCreateInstance, CoInitializeEx, CoUninitialize, CLSCTX_ALL, COINIT_MULTITHREADED,
 };
 
+/// COM error: already initialized with different threading mode (safe to ignore)
+const RPC_E_CHANGED_MODE: i32 = 0x80010106u32 as i32;
+
 /// Saved default device settings (all 4 combinations)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SavedDefaults {
@@ -27,6 +30,26 @@ pub struct SavedDefaults {
     pub render_communications: Option<String>,
     pub capture_console: Option<String>,
     pub capture_communications: Option<String>,
+}
+
+/// Result of restoring default devices - shows status per device
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RestoreResult {
+    /// Number of devices successfully restored
+    pub restored_count: u8,
+    /// Number of devices that failed to restore
+    pub failed_count: u8,
+    /// List of failed device names with error messages
+    pub failures: Vec<RestoreFailure>,
+}
+
+/// Details about a failed device restore
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RestoreFailure {
+    /// Human-readable device role (e.g., "Playback Device", "Communications Microphone")
+    pub device_role: String,
+    /// Error message
+    pub error: String,
 }
 
 /// Manager for saving and restoring the Windows default audio devices
@@ -85,47 +108,83 @@ impl DefaultDeviceManager {
     }
 
     /// Restore ALL default device settings
-    pub fn restore_all_defaults(saved: &SavedDefaults) -> Result<(), String> {
+    ///
+    /// Returns a structured result showing which devices were restored successfully
+    /// and which failed, allowing the frontend to display specific guidance.
+    pub fn restore_all_defaults(saved: &SavedDefaults) -> RestoreResult {
         info!("Restoring all default audio devices...");
 
-        let mut errors = Vec::new();
+        let mut restored_count: u8 = 0;
+        let mut failures = Vec::new();
 
         if let Some(ref id) = saved.render_console {
             if let Err(e) = unsafe { set_default_device(id, eRender, eConsole) } {
-                warn!("Failed to restore render console: {}", e);
-                errors.push(format!("render_console: {}", e));
+                error!("Failed to restore Playback Device: {}", e);
+                failures.push(RestoreFailure {
+                    device_role: "Playback Device".to_string(),
+                    error: e,
+                });
+            } else {
+                restored_count += 1;
             }
         }
 
         if let Some(ref id) = saved.render_communications {
             if let Err(e) = unsafe { set_default_device(id, eRender, eCommunications) } {
-                warn!("Failed to restore render communications: {}", e);
-                errors.push(format!("render_communications: {}", e));
+                error!("Failed to restore Communications Playback: {}", e);
+                failures.push(RestoreFailure {
+                    device_role: "Communications Playback".to_string(),
+                    error: e,
+                });
+            } else {
+                restored_count += 1;
             }
         }
 
         if let Some(ref id) = saved.capture_console {
             if let Err(e) = unsafe { set_default_device(id, eCapture, eConsole) } {
-                warn!("Failed to restore capture console: {}", e);
-                errors.push(format!("capture_console: {}", e));
+                error!("Failed to restore Recording Device: {}", e);
+                failures.push(RestoreFailure {
+                    device_role: "Recording Device".to_string(),
+                    error: e,
+                });
+            } else {
+                restored_count += 1;
             }
         }
 
         if let Some(ref id) = saved.capture_communications {
             if let Err(e) = unsafe { set_default_device(id, eCapture, eCommunications) } {
-                warn!("Failed to restore capture communications: {}", e);
-                errors.push(format!("capture_communications: {}", e));
+                error!("Failed to restore Communications Microphone: {}", e);
+                failures.push(RestoreFailure {
+                    device_role: "Communications Microphone".to_string(),
+                    error: e,
+                });
+            } else {
+                restored_count += 1;
             }
         }
 
-        if errors.is_empty() {
-            info!("All default audio devices restored successfully");
-            Ok(())
+        let failed_count = failures.len() as u8;
+
+        if failures.is_empty() {
+            info!(
+                "All {} default audio devices restored successfully",
+                restored_count
+            );
         } else {
-            Err(format!(
-                "Some devices failed to restore: {}",
-                errors.join(", ")
-            ))
+            warn!(
+                "Restored {}/{} devices. Failed: {:?}",
+                restored_count,
+                restored_count + failed_count,
+                failures.iter().map(|f| &f.device_role).collect::<Vec<_>>()
+            );
+        }
+
+        RestoreResult {
+            restored_count,
+            failed_count,
+            failures,
         }
     }
 }
@@ -140,7 +199,7 @@ unsafe fn get_default_device_id(flow: EDataFlow, role: ERole) -> Result<String, 
     // RPC_E_CHANGED_MODE (0x80010106) means COM is already initialized with different mode
     // This is fine - we can still use COM, just don't uninitialize it
     let we_initialized_com = hr.is_ok();
-    if hr.is_err() && hr != windows::core::HRESULT(0x80010106u32 as i32) {
+    if hr.is_err() && hr != windows::core::HRESULT(RPC_E_CHANGED_MODE) {
         error!("COM initialization failed: {:?}", hr);
         return Err(format!("Failed to initialize COM: {:?}", hr));
     }
@@ -200,7 +259,7 @@ unsafe fn set_default_device(device_id: &str, _flow: EDataFlow, role: ERole) -> 
     let hr = CoInitializeEx(None, COINIT_MULTITHREADED);
     // RPC_E_CHANGED_MODE (0x80010106) means COM is already initialized with different mode
     let we_initialized_com = hr.is_ok();
-    if hr.is_err() && hr != windows::core::HRESULT(0x80010106u32 as i32) {
+    if hr.is_err() && hr != windows::core::HRESULT(RPC_E_CHANGED_MODE) {
         error!("COM initialization failed: {:?}", hr);
         return Err(format!("Failed to initialize COM: {:?}", hr));
     }
@@ -347,5 +406,40 @@ mod tests {
         let cloned = defaults.clone();
         assert_eq!(defaults.render_console, cloned.render_console);
         assert_eq!(defaults.render_communications, cloned.render_communications);
+    }
+
+    #[test]
+    fn test_restore_result_serialization() {
+        let result = RestoreResult {
+            restored_count: 3,
+            failed_count: 1,
+            failures: vec![RestoreFailure {
+                device_role: "Playback Device".to_string(),
+                error: "Device not found".to_string(),
+            }],
+        };
+
+        let json = serde_json::to_string(&result).expect("Serialization failed");
+        assert!(json.contains("restored_count"));
+        assert!(json.contains("Playback Device"));
+
+        let deserialized: RestoreResult =
+            serde_json::from_str(&json).expect("Deserialization failed");
+        assert_eq!(deserialized.restored_count, 3);
+        assert_eq!(deserialized.failed_count, 1);
+        assert_eq!(deserialized.failures.len(), 1);
+        assert_eq!(deserialized.failures[0].device_role, "Playback Device");
+    }
+
+    #[test]
+    fn test_restore_result_all_success() {
+        let result = RestoreResult {
+            restored_count: 4,
+            failed_count: 0,
+            failures: vec![],
+        };
+
+        assert_eq!(result.restored_count, 4);
+        assert!(result.failures.is_empty());
     }
 }

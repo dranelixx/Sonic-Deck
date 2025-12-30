@@ -4,6 +4,10 @@
 //! while using VB-Cable for soundboard routing.
 //!
 //! Audio flow: Microphone -> [This Module] -> CABLE Input -> CABLE Output -> Discord
+//!
+//! ## Latency
+//! Uses a 100ms ring buffer for balance between latency and stability.
+//! Earlier versions used 1s which caused noticeable delay (see #83).
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -101,6 +105,7 @@ struct RingBuffer {
     write_pos: usize,
     read_pos: usize,
     capacity: usize,
+    overflow_logged: bool,
 }
 
 impl RingBuffer {
@@ -115,6 +120,7 @@ impl RingBuffer {
             write_pos: capacity / 2, // Start ahead to prevent underruns
             read_pos: 0,
             capacity,
+            overflow_logged: false,
         }
     }
 
@@ -122,6 +128,12 @@ impl RingBuffer {
         for &sample in samples {
             self.buffer[self.write_pos] = sample;
             self.write_pos = (self.write_pos + 1) % self.capacity;
+
+            // Detect buffer overflow (write catching up to read)
+            if self.write_pos == self.read_pos && !self.overflow_logged {
+                warn!("Ring buffer overflow detected - some audio data may be lost");
+                self.overflow_logged = true;
+            }
         }
     }
 
@@ -362,7 +374,7 @@ pub fn disable_routing() -> Result<(), String> {
         );
         // Thread handle is dropped here, thread will complete
     } else {
-        warn!("No active microphone routing to disable");
+        debug!("No active microphone routing to disable");
     }
 
     Ok(())
@@ -393,6 +405,7 @@ mod tests {
         // Buffer should be prefilled with write_pos ahead of read_pos
         assert_eq!(buffer.write_pos, 5); // capacity / 2
         assert_eq!(buffer.read_pos, 0);
+        assert!(!buffer.overflow_logged);
 
         // Buffer contains silence (0.0)
         assert!(buffer.buffer.iter().all(|&x| x == 0.0));
@@ -437,6 +450,21 @@ mod tests {
     }
 
     #[test]
+    fn test_ring_buffer_overflow_detection() {
+        let mut buffer = RingBuffer::new(8);
+        assert!(!buffer.overflow_logged);
+
+        // Write enough samples to cause overflow (more than capacity)
+        // Buffer starts with write_pos = 4, read_pos = 0
+        // Writing 5 samples: write_pos goes 4->5->6->7->0->1
+        // When write_pos becomes 0 and read_pos is still 0, overflow is detected
+        buffer.write(&[1.0, 2.0, 3.0, 4.0, 5.0]);
+
+        // Overflow should be detected (write caught up to read)
+        assert!(buffer.overflow_logged);
+    }
+
+    #[test]
     fn test_get_routing_status_none() {
         // Initially no routing should be active
         let status = get_routing_status();
@@ -446,13 +474,16 @@ mod tests {
     }
 
     #[test]
-    fn test_list_capture_devices() {
-        // This test verifies the function runs without panicking
-        // Actual devices depend on the system
+    fn test_list_capture_devices_excludes_cable() {
+        // Verifies VB-Cable devices are filtered out from the list
+        // (actual device count depends on system hardware)
         let devices = list_capture_devices();
-        // Should not include any "cable" devices
         for (_, name) in &devices {
-            assert!(!name.to_lowercase().contains("cable"));
+            assert!(
+                !name.to_lowercase().contains("cable"),
+                "VB-Cable device should be excluded: {}",
+                name
+            );
         }
     }
 }

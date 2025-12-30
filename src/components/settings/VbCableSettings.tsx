@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { AudioDevice, SavedDefaults, VbCableStatus } from "../../types";
+import {
+  AudioDevice,
+  RestoreResult,
+  SavedDefaults,
+  VbCableStatus,
+} from "../../types";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useAudio } from "../../contexts/AudioContext";
 
@@ -159,11 +164,23 @@ export default function VbCableSettings({
 
       // Step 4: Restore ALL Windows default devices
       setInstallStep("Restoring default devices...");
-      try {
-        await invoke("restore_all_default_devices", { saved: savedDefaults });
-        console.log("Restored all default devices");
-      } catch (e) {
-        console.warn("Could not restore all default devices:", e);
+      const restoreResult = await invoke<RestoreResult>(
+        "restore_all_default_devices",
+        { saved: savedDefaults }
+      );
+      console.log(
+        `Restored ${restoreResult.restored_count} devices, ${restoreResult.failed_count} failed`
+      );
+
+      // Show warning if some devices failed to restore
+      if (restoreResult.failed_count > 0) {
+        const failedDevices = restoreResult.failures
+          .map((f) => f.device_role)
+          .join(", ");
+        setError(
+          `Some audio defaults could not be restored: ${failedDevices}. ` +
+            `You may need to set them manually in Windows Sound Settings.`
+        );
       }
 
       // Step 5: Refresh device list
