@@ -266,6 +266,13 @@ pub fn enable_routing(microphone_id: &str) -> Result<(), String> {
         // Build output stream (play to CABLE Input)
         let input_ch = input_channels;
         let output_ch = output_channels;
+
+        // Pre-allocate conversion buffer to avoid heap allocation in audio callback
+        // Max buffer size for typical audio callbacks (256-4096 samples per channel)
+        const MAX_CALLBACK_SAMPLES: usize = 8192;
+        let conversion_buffer = Arc::new(Mutex::new(vec![0.0f32; MAX_CALLBACK_SAMPLES]));
+        let conversion_buffer_clone = conversion_buffer.clone();
+
         let output_stream = match cable_device.build_output_stream(
             &output_stream_config,
             move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
@@ -284,19 +291,28 @@ pub fn enable_routing(microphone_id: &str) -> Result<(), String> {
                     } else if input_ch == 1 && output_ch == 2 {
                         // Mono to stereo: duplicate each sample
                         let mono_samples = data.len() / 2;
-                        let mut mono_buffer = vec![0.0f32; mono_samples];
-                        buffer.read(&mut mono_buffer);
-                        for (i, &sample) in mono_buffer.iter().enumerate() {
-                            data[i * 2] = sample;
-                            data[i * 2 + 1] = sample;
+                        if let Ok(mut conv_buf) = conversion_buffer_clone.try_lock() {
+                            let conv_slice =
+                                &mut conv_buf[..mono_samples.min(MAX_CALLBACK_SAMPLES)];
+                            buffer.read(conv_slice);
+                            for (i, &sample) in conv_slice.iter().enumerate() {
+                                if i * 2 + 1 < data.len() {
+                                    data[i * 2] = sample;
+                                    data[i * 2 + 1] = sample;
+                                }
+                            }
                         }
                     } else if input_ch == 2 && output_ch == 1 {
                         // Stereo to mono: average channels
-                        let stereo_samples = data.len() * 2;
-                        let mut stereo_buffer = vec![0.0f32; stereo_samples];
-                        buffer.read(&mut stereo_buffer);
-                        for i in 0..data.len() {
-                            data[i] = (stereo_buffer[i * 2] + stereo_buffer[i * 2 + 1]) * 0.5;
+                        let stereo_samples = (data.len() * 2).min(MAX_CALLBACK_SAMPLES);
+                        if let Ok(mut conv_buf) = conversion_buffer_clone.try_lock() {
+                            let conv_slice = &mut conv_buf[..stereo_samples];
+                            buffer.read(conv_slice);
+                            for i in 0..data.len() {
+                                if i * 2 + 1 < stereo_samples {
+                                    data[i] = (conv_slice[i * 2] + conv_slice[i * 2 + 1]) * 0.5;
+                                }
+                            }
                         }
                     } else {
                         // Fallback: just read what we can

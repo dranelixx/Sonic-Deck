@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
   AudioDevice,
@@ -27,6 +27,9 @@ export default function VbCableSettings({
   const [selectedMicrophone, setSelectedMicrophone] = useState<string>("");
   const [isRoutingActive, setIsRoutingActive] = useState(false);
   const [isRoutingLoading, setIsRoutingLoading] = useState(false);
+
+  // Guard against race conditions from rapid clicks (state updates are async)
+  const operationInProgress = useRef(false);
 
   const { settings, saveSettings } = useSettings();
   const { refreshDevices } = useAudio();
@@ -134,6 +137,10 @@ export default function VbCableSettings({
   };
 
   const handleInstall = async () => {
+    // Synchronous guard against double-clicks (state update is async)
+    if (operationInProgress.current) return;
+    operationInProgress.current = true;
+
     setIsInstalling(true);
     setError(null);
 
@@ -224,6 +231,7 @@ export default function VbCableSettings({
       setError(`Installation failed: ${e}`);
       setInstallStep("");
     } finally {
+      operationInProgress.current = false;
       setIsInstalling(false);
     }
   };
@@ -237,6 +245,10 @@ export default function VbCableSettings({
   };
 
   const handleUninstall = async () => {
+    // Synchronous guard against double-clicks (state update is async)
+    if (operationInProgress.current) return;
+    operationInProgress.current = true;
+
     setIsUninstalling(true);
     setError(null);
 
@@ -277,6 +289,7 @@ export default function VbCableSettings({
       setError(`Uninstallation failed: ${e}`);
       setInstallStep("");
     } finally {
+      operationInProgress.current = false;
       setIsUninstalling(false);
     }
   };
