@@ -177,11 +177,12 @@ pub fn launch_installer(installer_path: &PathBuf) -> Result<(), String> {
         unsafe {
             let _ = windows::Win32::Foundation::CloseHandle(sei.hProcess);
         }
+        Ok(())
     } else {
-        warn!("No process handle returned - installer may have failed to start");
+        // User cancelled UAC prompt or installer failed to start
+        error!("No process handle - installation cancelled or failed to start");
+        Err("Installation cancelled or failed to start".to_string())
     }
-
-    Ok(())
 }
 
 /// Full installation flow: download, extract, launch
