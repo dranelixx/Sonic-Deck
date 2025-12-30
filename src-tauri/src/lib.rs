@@ -326,6 +326,7 @@ pub fn run() {
             commands::open_vb_audio_website,
             commands::save_all_default_devices,
             commands::restore_all_default_devices,
+            commands::wait_for_vb_cable_device,
         ])
         .setup(|app| {
             // Initialize app state (load all data from disk once at startup)

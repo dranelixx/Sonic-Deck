@@ -7,9 +7,9 @@ mod detection;
 mod installer;
 
 pub use default_device::{DefaultDeviceManager, SavedDefaults};
-pub use detection::{detect_vb_cable, VbCableStatus};
+pub use detection::{detect_vb_cable, wait_for_vb_cable, VbCableInfo, VbCableStatus};
 pub use installer::{cleanup_temp_files, install_vbcable};
 
-// These are available but not currently used by commands - kept for future use
+// This is available but not currently used by commands - kept for future use
 #[allow(unused_imports)]
-pub use detection::{is_vb_cable_installed, VbCableInfo};
+pub use detection::is_vb_cable_installed;

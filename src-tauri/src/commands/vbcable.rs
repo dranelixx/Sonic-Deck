@@ -1,8 +1,8 @@
 //! VB-Cable related Tauri commands
 
 use crate::vbcable::{
-    cleanup_temp_files, detect_vb_cable, install_vbcable, DefaultDeviceManager, SavedDefaults,
-    VbCableStatus,
+    cleanup_temp_files, detect_vb_cable, install_vbcable, wait_for_vb_cable, DefaultDeviceManager,
+    SavedDefaults, VbCableStatus,
 };
 use tracing::info;
 
@@ -89,4 +89,14 @@ pub fn save_all_default_devices() -> Result<SavedDefaults, String> {
 pub fn restore_all_default_devices(saved: SavedDefaults) -> Result<(), String> {
     info!("Restoring all default audio devices");
     DefaultDeviceManager::restore_all_defaults(&saved)
+}
+
+/// Wait for VB-Cable device to appear after installation (with smart retries)
+///
+/// Uses active retry logic that polls for the device up to 5 times with 1s delays.
+/// Returns early as soon as device is detected, or None if not detected after retries.
+#[tauri::command]
+pub fn wait_for_vb_cable_device() -> Option<String> {
+    info!("Waiting for VB-Cable device with retry logic...");
+    wait_for_vb_cable().map(|info| info.output_device)
 }

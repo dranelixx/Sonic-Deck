@@ -50,9 +50,17 @@ export default function VbCableSettings({
       setInstallStep("Installiere VB-Cable...");
       await invoke("start_vb_cable_install");
 
-      // Step 3: Wait for Windows to register the new device
-      setInstallStep("Warte auf Geräte-Registrierung...");
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      // Step 3: Wait for VB-Cable device with smart retry
+      setInstallStep("Warte auf VB-Cable Gerät...");
+      const detectedDevice = await invoke<string | null>(
+        "wait_for_vb_cable_device"
+      );
+
+      if (!detectedDevice) {
+        console.warn(
+          "VB-Cable not detected after retries, continuing anyway..."
+        );
+      }
 
       // Step 4: Restore ALL Windows default devices
       setInstallStep("Stelle alle Standard-Geräte wieder her...");
@@ -172,6 +180,22 @@ export default function VbCableSettings({
           <p className="text-sm text-discord-danger">{error}</p>
         </div>
       )}
+
+      {/* Donationware notice - always visible per VB-Audio licensing requirements */}
+      <div className="mt-4 p-3 bg-discord-darker rounded text-sm text-discord-text-muted">
+        <p>
+          VB-Cable is donationware by{" "}
+          <button
+            onClick={handleOpenWebsite}
+            className="text-discord-primary hover:underline"
+          >
+            vb-audio.com
+          </button>
+        </p>
+        <p className="mt-1">
+          If you find it useful, please consider supporting the developers!
+        </p>
+      </div>
     </div>
   );
 }

@@ -2,7 +2,9 @@
 
 use cpal::traits::{DeviceTrait, HostTrait};
 use serde::Serialize;
-use tracing::debug;
+use std::thread;
+use std::time::Duration;
+use tracing::{debug, info, warn};
 
 /// Information about detected VB-Cable devices
 #[derive(Debug, Clone, Serialize)]
@@ -87,6 +89,33 @@ pub fn detect_vb_cable() -> Option<VbCableInfo> {
         output_device: out,
         input_device,
     })
+}
+
+const MAX_RETRIES: u32 = 5;
+const RETRY_DELAY_MS: u64 = 1000;
+
+/// Wait for VB-Cable to appear in device list (with active retries)
+///
+/// Use after installation when Windows needs time to register the device.
+/// Returns early as soon as device is detected, or None after all retries.
+pub fn wait_for_vb_cable() -> Option<VbCableInfo> {
+    for attempt in 1..=MAX_RETRIES {
+        if let Some(info) = detect_vb_cable() {
+            info!("VB-Cable detected on attempt {}/{}", attempt, MAX_RETRIES);
+            return Some(info);
+        }
+
+        if attempt < MAX_RETRIES {
+            debug!(
+                "VB-Cable not found (attempt {}/{}), retrying in {}ms...",
+                attempt, MAX_RETRIES, RETRY_DELAY_MS
+            );
+            thread::sleep(Duration::from_millis(RETRY_DELAY_MS));
+        }
+    }
+
+    warn!("VB-Cable not detected after {} attempts", MAX_RETRIES);
+    None
 }
 
 #[cfg(test)]
