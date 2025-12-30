@@ -2,26 +2,45 @@
 //!
 //! Uses the com-policy-config crate and windows crate for COM operations.
 //! This is needed because VB-Cable installation changes the Windows default audio device.
+//!
+//! VB-Cable changes 4 default settings:
+//! - Render (output) Console: Main playback device
+//! - Render (output) Communications: Device for calls/voice chat
+//! - Capture (input) Console: Main recording device
+//! - Capture (input) Communications: Device for calls/voice chat
 
 use com_policy_config::{IPolicyConfig, PolicyConfigClient};
-use tracing::{debug, error, info};
-use windows::Win32::Media::Audio::{eConsole, eRender, IMMDeviceEnumerator, MMDeviceEnumerator};
+use serde::{Deserialize, Serialize};
+use tracing::{debug, error, info, warn};
+use windows::Win32::Media::Audio::{
+    eCapture, eCommunications, eConsole, eRender, EDataFlow, ERole, IMMDeviceEnumerator,
+    MMDeviceEnumerator,
+};
 use windows::Win32::System::Com::{
     CoCreateInstance, CoInitializeEx, CoUninitialize, CLSCTX_ALL, COINIT_MULTITHREADED,
 };
 
-/// Manager for saving and restoring the Windows default audio device
+/// Saved default device settings (all 4 combinations)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SavedDefaults {
+    pub render_console: Option<String>,
+    pub render_communications: Option<String>,
+    pub capture_console: Option<String>,
+    pub capture_communications: Option<String>,
+}
+
+/// Manager for saving and restoring the Windows default audio devices
 #[derive(Debug, Clone)]
 pub struct DefaultDeviceManager {
     saved_device_id: Option<String>,
 }
 
 impl DefaultDeviceManager {
-    /// Save the current default output audio device
+    /// Save the current default output audio device (legacy - single device)
     ///
     /// Call this before VB-Cable installation to preserve the user's original default device.
     pub fn save_current_default() -> Result<Self, String> {
-        let device_id = unsafe { get_default_device_id() }?;
+        let device_id = unsafe { get_default_device_id(eRender, eConsole) }?;
 
         info!("Saved current default audio device: {}", device_id);
 
@@ -49,18 +68,89 @@ impl DefaultDeviceManager {
     ///
     /// Used when the device ID is stored externally (e.g., in frontend state).
     pub fn restore_device(device_id: &str) -> Result<(), String> {
-        unsafe { set_default_device(device_id) }
+        unsafe { set_default_device(device_id, eRender, eConsole) }
+    }
+
+    /// Save ALL default device settings (all 4 combinations)
+    pub fn save_all_defaults() -> Result<SavedDefaults, String> {
+        info!("Saving all default audio devices...");
+
+        let render_console = unsafe { get_default_device_id(eRender, eConsole) }.ok();
+        let render_communications = unsafe { get_default_device_id(eRender, eCommunications) }.ok();
+        let capture_console = unsafe { get_default_device_id(eCapture, eConsole) }.ok();
+        let capture_communications =
+            unsafe { get_default_device_id(eCapture, eCommunications) }.ok();
+
+        debug!(
+            "Saved defaults - render_console: {:?}, render_comm: {:?}, capture_console: {:?}, capture_comm: {:?}",
+            render_console, render_communications, capture_console, capture_communications
+        );
+
+        Ok(SavedDefaults {
+            render_console,
+            render_communications,
+            capture_console,
+            capture_communications,
+        })
+    }
+
+    /// Restore ALL default device settings
+    pub fn restore_all_defaults(saved: &SavedDefaults) -> Result<(), String> {
+        info!("Restoring all default audio devices...");
+
+        let mut errors = Vec::new();
+
+        if let Some(ref id) = saved.render_console {
+            if let Err(e) = unsafe { set_default_device(id, eRender, eConsole) } {
+                warn!("Failed to restore render console: {}", e);
+                errors.push(format!("render_console: {}", e));
+            }
+        }
+
+        if let Some(ref id) = saved.render_communications {
+            if let Err(e) = unsafe { set_default_device(id, eRender, eCommunications) } {
+                warn!("Failed to restore render communications: {}", e);
+                errors.push(format!("render_communications: {}", e));
+            }
+        }
+
+        if let Some(ref id) = saved.capture_console {
+            if let Err(e) = unsafe { set_default_device(id, eCapture, eConsole) } {
+                warn!("Failed to restore capture console: {}", e);
+                errors.push(format!("capture_console: {}", e));
+            }
+        }
+
+        if let Some(ref id) = saved.capture_communications {
+            if let Err(e) = unsafe { set_default_device(id, eCapture, eCommunications) } {
+                warn!("Failed to restore capture communications: {}", e);
+                errors.push(format!("capture_communications: {}", e));
+            }
+        }
+
+        if errors.is_empty() {
+            info!("All default audio devices restored successfully");
+            Ok(())
+        } else {
+            Err(format!(
+                "Some devices failed to restore: {}",
+                errors.join(", ")
+            ))
+        }
     }
 }
 
-/// Get the current default output device ID (internal)
+/// Get the current default device ID for a specific flow and role
 ///
 /// # Safety
 /// Uses COM APIs which require proper initialization/cleanup.
-unsafe fn get_default_device_id() -> Result<String, String> {
-    // Initialize COM
+unsafe fn get_default_device_id(flow: EDataFlow, role: ERole) -> Result<String, String> {
+    // Initialize COM - handle case where it's already initialized by Tauri
     let hr = CoInitializeEx(None, COINIT_MULTITHREADED);
-    if hr.is_err() {
+    // RPC_E_CHANGED_MODE (0x80010106) means COM is already initialized with different mode
+    // This is fine - we can still use COM, just don't uninitialize it
+    let we_initialized_com = hr.is_ok();
+    if hr.is_err() && hr != windows::core::HRESULT(0x80010106u32 as i32) {
         error!("COM initialization failed: {:?}", hr);
         return Err(format!("Failed to initialize COM: {:?}", hr));
     }
@@ -73,12 +163,16 @@ unsafe fn get_default_device_id() -> Result<String, String> {
                 format!("Failed to access audio devices: {}", e)
             })?;
 
-        // Get default output device (render = output, console = default role)
+        // Get default device for specified flow and role
         let device = enumerator
-            .GetDefaultAudioEndpoint(eRender, eConsole)
+            .GetDefaultAudioEndpoint(flow, role)
             .map_err(|e| {
-                error!("Failed to get default audio endpoint: {:?}", e);
-                format!("Failed to get default audio device: {}", e)
+                // This can fail if no device is set for this role - that's OK
+                debug!(
+                    "No default device for flow {:?} role {:?}: {:?}",
+                    flow, role, e
+                );
+                format!("No default device: {}", e)
             })?;
 
         // Get device ID
@@ -92,24 +186,31 @@ unsafe fn get_default_device_id() -> Result<String, String> {
             format!("Failed to read device ID: {}", e)
         })?;
 
-        debug!("Current default device ID: {}", device_id);
+        debug!(
+            "Default device for flow {:?} role {:?}: {}",
+            flow, role, device_id
+        );
         Ok(device_id)
     })();
 
-    // Always uninitialize COM
-    CoUninitialize();
+    // Only uninitialize COM if we initialized it
+    if we_initialized_com {
+        CoUninitialize();
+    }
 
     result
 }
 
-/// Set a device as the default output device (internal)
+/// Set a device as the default for a specific role
 ///
 /// # Safety
 /// Uses COM APIs which require proper initialization/cleanup.
-unsafe fn set_default_device(device_id: &str) -> Result<(), String> {
-    // Initialize COM
+unsafe fn set_default_device(device_id: &str, _flow: EDataFlow, role: ERole) -> Result<(), String> {
+    // Initialize COM - handle case where it's already initialized by Tauri
     let hr = CoInitializeEx(None, COINIT_MULTITHREADED);
-    if hr.is_err() {
+    // RPC_E_CHANGED_MODE (0x80010106) means COM is already initialized with different mode
+    let we_initialized_com = hr.is_ok();
+    if hr.is_err() && hr != windows::core::HRESULT(0x80010106u32 as i32) {
         error!("COM initialization failed: {:?}", hr);
         return Err(format!("Failed to initialize COM: {:?}", hr));
     }
@@ -126,20 +227,25 @@ unsafe fn set_default_device(device_id: &str) -> Result<(), String> {
         let device_id_wide: Vec<u16> = device_id.encode_utf16().chain(std::iter::once(0)).collect();
         let device_id_pcwstr = windows::core::PCWSTR::from_raw(device_id_wide.as_ptr());
 
-        // Set as default for console role (main output)
+        // Set as default for specified role
         policy_config
-            .SetDefaultEndpoint(device_id_pcwstr, eConsole)
+            .SetDefaultEndpoint(device_id_pcwstr, role)
             .map_err(|e| {
-                error!("Failed to set default endpoint: {:?}", e);
+                error!(
+                    "Failed to set default endpoint for role {:?}: {:?}",
+                    role, e
+                );
                 format!("Failed to set default audio device: {}", e)
             })?;
 
-        info!("Restored default audio device: {}", device_id);
+        debug!("Set default device for role {:?}: {}", role, device_id);
         Ok(())
     })();
 
-    // Always uninitialize COM
-    CoUninitialize();
+    // Only uninitialize COM if we initialized it
+    if we_initialized_com {
+        CoUninitialize();
+    }
 
     result
 }

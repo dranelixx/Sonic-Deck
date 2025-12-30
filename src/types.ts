@@ -74,3 +74,24 @@ export interface SoundLibrary {
 export interface HotkeyMapping {
   mappings: Record<string, string>; // hotkey -> sound_id
 }
+
+// ============================================================================
+// VB-Cable Types
+// ============================================================================
+
+export interface VbCableInfo {
+  output_device: string;
+  input_device: string | null;
+}
+
+export type VbCableStatus =
+  | { status: "installed"; info: VbCableInfo }
+  | { status: "notInstalled" };
+
+/** All 4 Windows default audio device settings */
+export interface SavedDefaults {
+  render_console: string | null;
+  render_communications: string | null;
+  capture_console: string | null;
+  capture_communications: string | null;
+}
