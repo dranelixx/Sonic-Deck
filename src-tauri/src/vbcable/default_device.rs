@@ -261,4 +261,91 @@ mod tests {
             Some("test-device-id".to_string())
         );
     }
+
+    #[test]
+    fn test_default_device_manager_clone() {
+        let manager = DefaultDeviceManager {
+            saved_device_id: Some("device-123".to_string()),
+        };
+        let cloned = manager.clone();
+        assert_eq!(manager.get_saved_device_id(), cloned.get_saved_device_id());
+    }
+
+    #[test]
+    fn test_saved_defaults_serialization() {
+        let defaults = SavedDefaults {
+            render_console: Some("render-console-id".to_string()),
+            render_communications: Some("render-comm-id".to_string()),
+            capture_console: Some("capture-console-id".to_string()),
+            capture_communications: Some("capture-comm-id".to_string()),
+        };
+
+        let json = serde_json::to_string(&defaults).expect("Serialization failed");
+        let deserialized: SavedDefaults =
+            serde_json::from_str(&json).expect("Deserialization failed");
+
+        assert_eq!(defaults.render_console, deserialized.render_console);
+        assert_eq!(
+            defaults.render_communications,
+            deserialized.render_communications
+        );
+        assert_eq!(defaults.capture_console, deserialized.capture_console);
+        assert_eq!(
+            defaults.capture_communications,
+            deserialized.capture_communications
+        );
+    }
+
+    #[test]
+    fn test_saved_defaults_partial() {
+        // Test with only some fields set (common case)
+        let defaults = SavedDefaults {
+            render_console: Some("main-output".to_string()),
+            render_communications: None,
+            capture_console: None,
+            capture_communications: None,
+        };
+
+        let json = serde_json::to_string(&defaults).expect("Serialization failed");
+        assert!(json.contains("render_console"));
+        assert!(json.contains("main-output"));
+
+        let deserialized: SavedDefaults =
+            serde_json::from_str(&json).expect("Deserialization failed");
+        assert_eq!(deserialized.render_console, Some("main-output".to_string()));
+        assert!(deserialized.render_communications.is_none());
+    }
+
+    #[test]
+    fn test_saved_defaults_all_none() {
+        let defaults = SavedDefaults {
+            render_console: None,
+            render_communications: None,
+            capture_console: None,
+            capture_communications: None,
+        };
+
+        let json = serde_json::to_string(&defaults).expect("Serialization failed");
+        let deserialized: SavedDefaults =
+            serde_json::from_str(&json).expect("Deserialization failed");
+
+        assert!(deserialized.render_console.is_none());
+        assert!(deserialized.render_communications.is_none());
+        assert!(deserialized.capture_console.is_none());
+        assert!(deserialized.capture_communications.is_none());
+    }
+
+    #[test]
+    fn test_saved_defaults_clone() {
+        let defaults = SavedDefaults {
+            render_console: Some("device-1".to_string()),
+            render_communications: Some("device-2".to_string()),
+            capture_console: None,
+            capture_communications: None,
+        };
+
+        let cloned = defaults.clone();
+        assert_eq!(defaults.render_console, cloned.render_console);
+        assert_eq!(defaults.render_communications, cloned.render_communications);
+    }
 }
