@@ -390,6 +390,9 @@ pub fn run() {
                     error!("Failed to cleanup orphaned hotkeys: {}", e);
                 }
 
+                // Cleanup orphaned VB-Cable temp files from previous sessions
+                vbcable::cleanup_temp_files();
+
                 // Register saved hotkeys
                 if let Err(e) = register_saved_hotkeys(app.handle()) {
                     error!("Failed to register saved hotkeys: {}", e);
