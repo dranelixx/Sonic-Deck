@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { AudioDevice, SavedDefaults, VbCableStatus } from "../../types";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -16,12 +16,51 @@ export default function VbCableSettings({
   const [installStep, setInstallStep] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
 
+  // Microphone routing state
+  const [microphones, setMicrophones] = useState<[string, string][]>([]);
+  const [selectedMicrophone, setSelectedMicrophone] = useState<string>("");
+  const [isRoutingActive, setIsRoutingActive] = useState(false);
+  const [isRoutingLoading, setIsRoutingLoading] = useState(false);
+
   const { settings, saveSettings } = useSettings();
   const { refreshDevices } = useAudio();
+
+  // Load microphones and routing status when VB-Cable is installed
+  const loadMicrophoneData = useCallback(async () => {
+    try {
+      // Load available microphones
+      const mics = await invoke<[string, string][]>("list_microphones");
+      setMicrophones(mics);
+
+      // Check current routing status
+      const routingStatus = await invoke<string | null>(
+        "get_microphone_routing_status"
+      );
+      if (routingStatus) {
+        setIsRoutingActive(true);
+        setSelectedMicrophone(routingStatus);
+      } else {
+        setIsRoutingActive(false);
+        // Restore from settings if available
+        if (settings?.microphone_routing_device_id) {
+          setSelectedMicrophone(settings.microphone_routing_device_id);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load microphone data:", e);
+    }
+  }, [settings?.microphone_routing_device_id]);
 
   useEffect(() => {
     checkStatus();
   }, []);
+
+  // Load microphone data when VB-Cable is installed
+  useEffect(() => {
+    if (status?.status === "installed") {
+      loadMicrophoneData();
+    }
+  }, [status, loadMicrophoneData]);
 
   const checkStatus = async () => {
     try {
@@ -29,7 +68,57 @@ export default function VbCableSettings({
       setStatus(result);
       setError(null);
     } catch (e) {
-      setError(`Status-Check fehlgeschlagen: ${e}`);
+      setError(`Status check failed: ${e}`);
+    }
+  };
+
+  // Microphone routing handlers
+  const handleEnableRouting = async () => {
+    if (!selectedMicrophone) return;
+
+    setIsRoutingLoading(true);
+    setError(null);
+
+    try {
+      await invoke("enable_microphone_routing", {
+        microphoneId: selectedMicrophone,
+      });
+      setIsRoutingActive(true);
+
+      // Save to settings
+      if (settings) {
+        await saveSettings({
+          ...settings,
+          microphone_routing_device_id: selectedMicrophone,
+          microphone_routing_enabled: true,
+        });
+      }
+    } catch (e) {
+      setError(`Microphone routing failed: ${e}`);
+    } finally {
+      setIsRoutingLoading(false);
+    }
+  };
+
+  const handleDisableRouting = async () => {
+    setIsRoutingLoading(true);
+    setError(null);
+
+    try {
+      await invoke("disable_microphone_routing");
+      setIsRoutingActive(false);
+
+      // Save to settings
+      if (settings) {
+        await saveSettings({
+          ...settings,
+          microphone_routing_enabled: false,
+        });
+      }
+    } catch (e) {
+      setError(`Failed to disable microphone routing: ${e}`);
+    } finally {
+      setIsRoutingLoading(false);
     }
   };
 
@@ -40,18 +129,18 @@ export default function VbCableSettings({
     try {
       // Step 1: Save ALL current Windows default devices before install
       // VB-Cable changes 4 defaults: render/capture × console/communications
-      setInstallStep("Speichere alle Standard-Geräte...");
+      setInstallStep("Saving default devices...");
       const savedDefaults = await invoke<SavedDefaults>(
         "save_all_default_devices"
       );
       console.log("Saved all default devices:", savedDefaults);
 
       // Step 2: Run installation
-      setInstallStep("Installiere VB-Cable...");
+      setInstallStep("Installing VB-Cable...");
       await invoke("start_vb_cable_install");
 
       // Step 3: Wait for VB-Cable device with smart retry
-      setInstallStep("Warte auf VB-Cable Gerät...");
+      setInstallStep("Waiting for VB-Cable device...");
       const detectedDevice = await invoke<string | null>(
         "wait_for_vb_cable_device"
       );
@@ -63,7 +152,7 @@ export default function VbCableSettings({
       }
 
       // Step 4: Restore ALL Windows default devices
-      setInstallStep("Stelle alle Standard-Geräte wieder her...");
+      setInstallStep("Restoring default devices...");
       try {
         await invoke("restore_all_default_devices", { saved: savedDefaults });
         console.log("Restored all default devices");
@@ -72,7 +161,7 @@ export default function VbCableSettings({
       }
 
       // Step 5: Refresh device list
-      setInstallStep("Aktualisiere Geräteliste...");
+      setInstallStep("Refreshing device list...");
       await refreshDevices();
       onDeviceChange?.();
 
@@ -82,7 +171,7 @@ export default function VbCableSettings({
 
       // Step 7: Auto-select VB-Cable as broadcast device
       if (newStatus.status === "installed") {
-        setInstallStep("Konfiguriere VB-Cable als Broadcast-Gerät...");
+        setInstallStep("Configuring VB-Cable as broadcast device...");
 
         // Get fresh device list
         const devices = await invoke<AudioDevice[]>("list_audio_devices");
@@ -104,12 +193,12 @@ export default function VbCableSettings({
       }
 
       // Step 8: Cleanup
-      setInstallStep("Räume auf...");
+      setInstallStep("Cleaning up...");
       await invoke("cleanup_vb_cable_install");
 
       setInstallStep("");
     } catch (e) {
-      setError(`Installation fehlgeschlagen: ${e}`);
+      setError(`Installation failed: ${e}`);
       setInstallStep("");
     } finally {
       setIsInstalling(false);
@@ -120,7 +209,7 @@ export default function VbCableSettings({
     try {
       await invoke("open_vb_audio_website");
     } catch (e) {
-      setError(`Konnte Website nicht öffnen: ${e}`);
+      setError(`Could not open website: ${e}`);
     }
   };
 
@@ -131,19 +220,77 @@ export default function VbCableSettings({
       </h3>
 
       {status?.status === "installed" ? (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-discord-success">
-            <span className="text-lg">✓</span>
-            <span>VB-Cable ist installiert</span>
+        <div className="space-y-4">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-discord-success">
+              <span className="text-lg">✓</span>
+              <span>VB-Cable is installed</span>
+            </div>
+            <p className="text-sm text-discord-text-muted">
+              Device: {status.info.output_device}
+            </p>
           </div>
-          <p className="text-sm text-discord-text-muted">
-            Gerät: {status.info.output_device}
-          </p>
+
+          {/* Microphone Routing Section */}
+          <div className="pt-4 border-t border-discord-darker">
+            <h4 className="text-sm font-medium text-discord-text mb-2">
+              Microphone Routing (for Discord)
+            </h4>
+            <p className="text-xs text-discord-text-muted mb-3">
+              Enable this so your friends can hear you AND the sounds.
+            </p>
+
+            <div className="flex items-center gap-3">
+              <select
+                value={selectedMicrophone}
+                onChange={(e) => setSelectedMicrophone(e.target.value)}
+                disabled={isRoutingActive || isRoutingLoading}
+                className="flex-1 bg-discord-darker text-discord-text rounded px-3 py-2
+                         border border-discord-darker hover:border-discord-text-muted
+                         focus:border-discord-primary focus:outline-none
+                         disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">Select microphone...</option>
+                {microphones.map(([id, name]) => (
+                  <option key={id} value={id}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                onClick={
+                  isRoutingActive ? handleDisableRouting : handleEnableRouting
+                }
+                disabled={
+                  (!selectedMicrophone && !isRoutingActive) || isRoutingLoading
+                }
+                className={`px-4 py-2 rounded font-medium transition-colors
+                          disabled:opacity-50 disabled:cursor-not-allowed ${
+                            isRoutingActive
+                              ? "bg-discord-danger hover:bg-discord-danger/80 text-white"
+                              : "bg-discord-primary hover:bg-discord-primary-hover text-white"
+                          }`}
+              >
+                {isRoutingLoading
+                  ? "..."
+                  : isRoutingActive
+                    ? "Disable"
+                    : "Enable"}
+              </button>
+            </div>
+
+            {isRoutingActive && (
+              <p className="mt-2 text-xs text-discord-success">
+                Microphone is being routed to CABLE Input
+              </p>
+            )}
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
           <p className="text-sm text-discord-text-muted">
-            VB-Cable wird für Dual-Output Routing zu Discord benötigt.
+            VB-Cable is required for dual-output routing to Discord.
           </p>
 
           <div className="flex gap-3">
@@ -154,7 +301,7 @@ export default function VbCableSettings({
                        disabled:bg-gray-600 disabled:cursor-not-allowed rounded
                        text-white font-medium transition-colors"
             >
-              {isInstalling ? "Installiere..." : "VB-Cable installieren"}
+              {isInstalling ? "Installing..." : "Install VB-Cable"}
             </button>
 
             <button
@@ -162,14 +309,14 @@ export default function VbCableSettings({
               className="px-4 py-2 bg-discord-darker hover:bg-discord-dark
                        rounded text-discord-text-muted transition-colors"
             >
-              Manueller Download
+              Manual Download
             </button>
           </div>
 
           {isInstalling && (
             <p className="text-sm text-discord-text-muted">
               {installStep ||
-                "Download und Installation... Windows fragt nach Treiber-Genehmigung."}
+                "Downloading and installing... Windows will ask for driver approval."}
             </p>
           )}
         </div>

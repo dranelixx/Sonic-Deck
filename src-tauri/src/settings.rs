@@ -31,6 +31,12 @@ pub struct AppSettings {
     /// Enable autostart on system boot
     #[serde(default)]
     pub autostart_enabled: bool,
+    /// Microphone device ID for VB-Cable routing
+    #[serde(default)]
+    pub microphone_routing_device_id: Option<String>,
+    /// Whether microphone routing is enabled
+    #[serde(default)]
+    pub microphone_routing_enabled: bool,
 }
 
 fn default_volume_multiplier() -> f32 {
@@ -52,6 +58,8 @@ impl Default for AppSettings {
             minimize_to_tray: default_minimize_to_tray(),
             start_minimized: false,
             autostart_enabled: false,
+            microphone_routing_device_id: None,
+            microphone_routing_enabled: false,
         }
     }
 }
@@ -136,6 +144,8 @@ mod tests {
         assert!(settings.minimize_to_tray);
         assert!(!settings.start_minimized);
         assert!(!settings.autostart_enabled);
+        assert_eq!(settings.microphone_routing_device_id, None);
+        assert!(!settings.microphone_routing_enabled);
     }
 
     #[test]
@@ -171,6 +181,8 @@ mod tests {
             minimize_to_tray: false,
             start_minimized: true,
             autostart_enabled: true,
+            microphone_routing_device_id: Some("device_2".to_string()),
+            microphone_routing_enabled: true,
         };
 
         let json = serde_json::to_string(&settings).unwrap();
@@ -193,6 +205,11 @@ mod tests {
         assert!(!deserialized.minimize_to_tray);
         assert!(deserialized.start_minimized);
         assert!(deserialized.autostart_enabled);
+        assert_eq!(
+            deserialized.microphone_routing_device_id,
+            Some("device_2".to_string())
+        );
+        assert!(deserialized.microphone_routing_enabled);
     }
 
     #[test]
@@ -212,6 +229,8 @@ mod tests {
         assert!(settings.minimize_to_tray);
         assert!(!settings.start_minimized);
         assert!(!settings.autostart_enabled);
+        assert_eq!(settings.microphone_routing_device_id, None);
+        assert!(!settings.microphone_routing_enabled);
     }
 
     #[test]

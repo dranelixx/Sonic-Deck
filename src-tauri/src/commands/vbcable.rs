@@ -1,8 +1,9 @@
 //! VB-Cable related Tauri commands
 
 use crate::vbcable::{
-    cleanup_temp_files, detect_vb_cable, install_vbcable, wait_for_vb_cable, DefaultDeviceManager,
-    SavedDefaults, VbCableStatus,
+    cleanup_temp_files, detect_vb_cable, disable_routing, enable_routing, get_routing_status,
+    install_vbcable, list_capture_devices, wait_for_vb_cable, DefaultDeviceManager, SavedDefaults,
+    VbCableStatus,
 };
 use tracing::info;
 
@@ -99,4 +100,45 @@ pub fn restore_all_default_devices(saved: SavedDefaults) -> Result<(), String> {
 pub fn wait_for_vb_cable_device() -> Option<String> {
     info!("Waiting for VB-Cable device with retry logic...");
     wait_for_vb_cable().map(|info| info.output_device)
+}
+
+// ============================================================================
+// Microphone Routing Commands
+// ============================================================================
+
+/// List available microphones (capture devices)
+///
+/// Returns a list of (device_id, display_name) tuples.
+/// Excludes VB-Cable devices since we only want physical microphones.
+#[tauri::command]
+pub fn list_microphones() -> Vec<(String, String)> {
+    info!("Listing available microphones");
+    list_capture_devices()
+}
+
+/// Enable microphone routing to CABLE Input
+///
+/// Routes audio from the specified microphone to VB-Cable's CABLE Input device.
+/// This allows the user's voice to be heard on Discord while using VB-Cable.
+#[tauri::command]
+pub fn enable_microphone_routing(microphone_id: String) -> Result<(), String> {
+    info!("Enabling microphone routing for device: {}", microphone_id);
+    enable_routing(&microphone_id)
+}
+
+/// Disable microphone routing
+///
+/// Stops routing microphone audio to CABLE Input.
+#[tauri::command]
+pub fn disable_microphone_routing() -> Result<(), String> {
+    info!("Disabling microphone routing");
+    disable_routing()
+}
+
+/// Get microphone routing status
+///
+/// Returns the device ID of the currently routed microphone, or None if not active.
+#[tauri::command]
+pub fn get_microphone_routing_status() -> Option<String> {
+    get_routing_status()
 }

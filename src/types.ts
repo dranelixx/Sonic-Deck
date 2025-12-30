@@ -21,6 +21,8 @@ export interface AppSettings {
   minimize_to_tray: boolean; // Close button behavior: true = minimize to tray, false = quit app
   start_minimized: boolean; // Start application minimized to tray
   autostart_enabled: boolean; // Enable autostart on system boot
+  microphone_routing_device_id: string | null; // Microphone device ID for VB-Cable routing
+  microphone_routing_enabled: boolean; // Whether microphone routing is enabled
 }
 
 // ============================================================================

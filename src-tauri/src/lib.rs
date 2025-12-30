@@ -327,6 +327,11 @@ pub fn run() {
             commands::save_all_default_devices,
             commands::restore_all_default_devices,
             commands::wait_for_vb_cable_device,
+            // Microphone routing commands
+            commands::list_microphones,
+            commands::enable_microphone_routing,
+            commands::disable_microphone_routing,
+            commands::get_microphone_routing_status,
         ])
         .setup(|app| {
             // Initialize app state (load all data from disk once at startup)
@@ -401,6 +406,22 @@ pub fn run() {
                     if let Some(window) = app.get_webview_window("main") {
                         let _ = window.hide();
                         info!("Started minimized to tray");
+                    }
+                }
+
+                // Auto-enable microphone routing if it was enabled in settings
+                let state = app.state::<AppState>();
+                let settings = state.read_settings();
+                let mic_routing_enabled = settings.microphone_routing_enabled;
+                let mic_device_id = settings.microphone_routing_device_id.clone();
+                drop(settings);
+
+                if mic_routing_enabled {
+                    if let Some(device_id) = mic_device_id {
+                        info!("Auto-enabling microphone routing for device: {}", device_id);
+                        if let Err(e) = vbcable::enable_routing(&device_id) {
+                            error!("Failed to auto-enable microphone routing: {}", e);
+                        }
                     }
                 }
             }
