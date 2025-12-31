@@ -387,13 +387,127 @@ mod tests {
     }
 
     #[test]
-    fn test_is_active_default_false() {
-        // In a fresh state, should not be active
-        // Note: This test may fail if run after activate() without deactivate()
-        // but is safe in isolation
-        let active = is_active();
-        // We can't assert false here because other tests may have run
-        // Just verify it doesn't panic
-        let _ = active;
+    fn test_persisted_state_inactive() {
+        let state = PersistedState {
+            original_device_id: "another-device".to_string(),
+            is_active: false,
+        };
+
+        let json = serde_json::to_string(&state).expect("Serialization failed");
+        let deserialized: PersistedState =
+            serde_json::from_str(&json).expect("Deserialization failed");
+
+        assert_eq!(state.original_device_id, deserialized.original_device_id);
+        assert!(!deserialized.is_active);
+    }
+
+    #[test]
+    fn test_persisted_state_json_format() {
+        let state = PersistedState {
+            original_device_id: "device-123".to_string(),
+            is_active: true,
+        };
+
+        let json = serde_json::to_string_pretty(&state).expect("Serialization failed");
+        assert!(json.contains("original_device_id"));
+        assert!(json.contains("device-123"));
+        assert!(json.contains("is_active"));
+        assert!(json.contains("true"));
+    }
+
+    #[test]
+    fn test_persisted_state_deserialization_from_json() {
+        let json = r#"{"original_device_id":"test-id","is_active":true}"#;
+        let state: PersistedState = serde_json::from_str(json).expect("Deserialization failed");
+        assert_eq!(state.original_device_id, "test-id");
+        assert!(state.is_active);
+    }
+
+    #[test]
+    fn test_persisted_state_empty_device_id() {
+        let state = PersistedState {
+            original_device_id: String::new(),
+            is_active: false,
+        };
+
+        let json = serde_json::to_string(&state).expect("Serialization failed");
+        let deserialized: PersistedState =
+            serde_json::from_str(&json).expect("Deserialization failed");
+
+        assert!(deserialized.original_device_id.is_empty());
+    }
+
+    #[test]
+    fn test_persisted_state_special_characters() {
+        let state = PersistedState {
+            original_device_id: "{0.0.0.00000000}.{abc-def-123}".to_string(),
+            is_active: true,
+        };
+
+        let json = serde_json::to_string(&state).expect("Serialization failed");
+        let deserialized: PersistedState =
+            serde_json::from_str(&json).expect("Deserialization failed");
+
+        assert_eq!(state.original_device_id, deserialized.original_device_id);
+    }
+
+    #[test]
+    fn test_get_state_file_path() {
+        let path = get_state_file_path();
+        assert!(path.is_some());
+        let path = path.unwrap();
+        assert!(path.ends_with(STATE_FILE_NAME));
+        assert!(path.to_string_lossy().contains("com.sonicdeck.app"));
+    }
+
+    #[test]
+    fn test_state_file_name_constant() {
+        assert_eq!(STATE_FILE_NAME, "vbcable_comm_state.json");
+    }
+
+    #[test]
+    fn test_rpc_e_changed_mode_constant() {
+        // Verify the COM error constant is correctly defined
+        assert_eq!(RPC_E_CHANGED_MODE, 0x80010106u32 as i32);
+    }
+
+    #[test]
+    fn test_is_active_returns_bool() {
+        // Test that is_active() returns a boolean without panicking
+        let result = is_active();
+        // Result is either true or false
+        assert!(result || !result);
+    }
+
+    #[test]
+    fn test_comm_state_struct() {
+        // Test CommState struct can be created
+        let state = CommState {
+            original_device_id: "test-device".to_string(),
+        };
+        assert_eq!(state.original_device_id, "test-device");
+    }
+
+    #[test]
+    fn test_persisted_state_clone() {
+        let state = PersistedState {
+            original_device_id: "original".to_string(),
+            is_active: true,
+        };
+        let cloned = state.clone();
+        assert_eq!(state.original_device_id, cloned.original_device_id);
+        assert_eq!(state.is_active, cloned.is_active);
+    }
+
+    #[test]
+    fn test_persisted_state_debug() {
+        let state = PersistedState {
+            original_device_id: "debug-test".to_string(),
+            is_active: false,
+        };
+        let debug_str = format!("{:?}", state);
+        assert!(debug_str.contains("PersistedState"));
+        assert!(debug_str.contains("debug-test"));
+        assert!(debug_str.contains("false"));
     }
 }
