@@ -1,6 +1,44 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  /* Discord Dark Theme Colors */
+  --color-discord-dark: #313338;
+  --color-discord-darker: #2b2d31;
+  --color-discord-darkest: #1e1f22;
+  --color-discord-primary: #5865f2;
+  --color-discord-primary-hover: #4752c4;
+  --color-discord-success: #23a559;
+  --color-discord-danger: #da373c;
+  --color-discord-warning: #f0b232;
+  --color-discord-text: #dbdee1;
+  --color-discord-text-muted: #b5bac1;
+
+  /* Custom Animations */
+  --animate-fade-in: fadeIn 0.3s ease-out;
+  --animate-toast-enter: toastEnter 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toastEnter {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 96px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
 
 body {
   margin: 0;

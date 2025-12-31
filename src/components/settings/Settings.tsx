@@ -6,6 +6,7 @@ import { useSettings as useSettingsContext } from "../../contexts/SettingsContex
 import AudioDeviceSettings from "./AudioDeviceSettings";
 import PlaybackSettings from "./PlaybackSettings";
 import SystemTraySettings from "./SystemTraySettings";
+import VbCableSettings from "./VbCableSettings";
 import SettingsAbout from "./SettingsAbout";
 
 export default function Settings() {
@@ -26,6 +27,8 @@ export default function Settings() {
     minimize_to_tray: false,
     start_minimized: false,
     autostart_enabled: false,
+    microphone_routing_device_id: null,
+    microphone_routing_enabled: false,
   });
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -141,6 +144,9 @@ export default function Settings() {
               </div>
             </div>
           )}
+
+          {/* VB-Cable Integration */}
+          <VbCableSettings onDeviceChange={handleRefreshDevices} />
 
           {/* Audio Device Configuration */}
           <AudioDeviceSettings

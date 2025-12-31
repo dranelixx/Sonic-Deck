@@ -1,7 +1,7 @@
 {
-  "version": "0.8.1-0",
+  "version": "0.9.0-0",
   "prerelease": true,
   "channel": "alpha",
-  "releaseDate": "2025-12-28",
-  "description": "Dependency updates and maintenance"
+  "releaseDate": "2025-12-31",
+  "description": "VB-Cable integration, framework upgrades, test infrastructure"
 }

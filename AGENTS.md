@@ -8,7 +8,7 @@ This file contains project-specific instructions for AI Agents when working on t
 
 SonicDeck is a high-performance desktop soundboard application built with:
 
-- **Frontend**: React 18.2.0 + TypeScript 5.3.3 + Vite 5.0.8 + TailwindCSS 3.4.0
+- **Frontend**: React 19.2.3 + TypeScript 5.3.3 + Vite 7.3.0 + TailwindCSS 4.1.18
 - **Backend**: Tauri v2 + Rust (cpal + symphonia for audio)
 - **Key Features**: Dual-audio routing, sound library management, waveform visualization, audio trimming
 
@@ -16,8 +16,8 @@ SonicDeck is a high-performance desktop soundboard application built with:
 
 #### Frontend
 
-- **Build**: Vite 5.0.8, TypeScript 5.3.3, PostCSS + Autoprefixer
-- **UI**: React 18.2.0, TailwindCSS 3.4.0, Emojibase 17.0.0 (emoji picker)
+- **Build**: Vite 7.3.0, TypeScript 5.3.3, @tailwindcss/vite
+- **UI**: React 19.2.3, TailwindCSS 4.1.18, Emojibase 17.0.0 (emoji picker)
 - **State**: React hooks (useState, useEffect, custom hooks) - state managed via React Context API
 - **Quality**: ESLint 9.39.2, Prettier 3.7.4, Husky 9.1.7, lint-staged 16.2.7
 
@@ -117,8 +117,15 @@ SonicDeck is a high-performance desktop soundboard application built with:
   1. Create feature/fix branch from `develop`
   2. Make changes, commit with conventional commits
   3. Push branch and create PR to `develop`
-  4. CI runs: Frontend + Rust checks (no Claude Review)
-  5. Merge to `develop` after checks pass
+  4. **Set PR labels** for automatic release notes categorization:
+     - `feature` / `enhancement` → ✨ Features
+     - `bug` / `fix` → 🐛 Bug Fixes
+     - `performance` → ⚡ Performance
+     - `developer-tools` / `logging` / `debugging` → 🔧 Developer Experience
+     - `documentation` → 📚 Documentation
+     - `chore` / `refactor` → 🔨 Maintenance
+  5. CI runs: Frontend + Rust checks (no Claude Review)
+  6. Merge to `develop` after checks pass
 - **Release Workflow**:
   1. When ready for release: Create PR from `develop` to `main`
   2. CI runs: Frontend + Rust checks + **Claude Code Review**
@@ -131,7 +138,8 @@ SonicDeck is a high-performance desktop soundboard application built with:
 - **CI/CD**:
   - Frontend/Rust checks: Run on `main`, `develop`, `fix/**`, `feature/**`, `refactor/**` branches and PRs to `main`/`develop`
   - Claude Code Review: **Only** on PRs to `main` (saves runner minutes)
-  - Release workflow: Triggered by version tags
+  - Release workflow: Triggered by version tags, auto-generates release notes from PR labels
+  - Release notes: Configured via `.github/release.yml`, categorizes PRs by labels
 - **Merge Strategy**:
   - PRs to `develop`: **Merge commit** (preserves full commit history)
   - PRs to `main` (releases): **Squash merge** (1 clean commit, includes version bump)
@@ -156,6 +164,8 @@ SonicDeck is a high-performance desktop soundboard application built with:
 ---
 
 ## Architecture & Project Structure
+
+> **Deep Dive**: See `.planning/codebase/ARCHITECTURE.md` and `.planning/codebase/STRUCTURE.md` for detailed analysis
 
 ### State Management
 
@@ -242,7 +252,7 @@ src-tauri/src/
 
 - `src-tauri/tauri.conf.json` - Tauri app config
 - `src-tauri/capabilities/main-capability.json` - Tauri v2 permissions
-- `vite.config.ts`, `tsconfig.json`, `tailwind.config.js`, `eslint.config.js`, `.prettierrc`
+- `vite.config.ts`, `tsconfig.json`, `eslint.config.js`, `.prettierrc`
 - `version.json` - **Centralized Version (NEW v0.7.0+)**
 
 ---
@@ -309,12 +319,13 @@ When starting new work, check the "Now/Next/Later" note first for current priori
 ## Known Issues & Roadmap
 
 **Known Limitations**:
-- No automated tests yet (manual testing required)
 - Format support limited to symphonia (MP3, OGG/Vorbis, M4A/AAC)
 - Global hotkeys may conflict with other apps
 - Waveform generation CPU-intensive for large files
 
 **Focus Areas for Testing**: Audio playback, device switching, file import, trim editor, hotkeys
+
+**Detailed Analysis**: See `.planning/codebase/CONCERNS.md` for tracked issues with GitHub issue references
 
 ---
 
@@ -367,8 +378,7 @@ When starting new work, check the "Now/Next/Later" note first for current priori
 ### Modify UI Styling
 
 - Prefer TailwindCSS utility classes
-- Add to `src/index.css` only if absolutely necessary
-- Use `tailwind.config.js` for theme customization
+- Use `@theme` in `src/index.css` for theme customization (TailwindCSS 4 CSS-first config)
 - Follow Discord-inspired dark theme
 - Use `ANIMATION_DURATIONS` from `constants.ts`
 
@@ -417,13 +427,92 @@ When starting new work, check the "Now/Next/Later" note first for current priori
 
 ## Testing & Quality Assurance
 
+> **Deep Dive**: See `.planning/codebase/TESTING.md` for test patterns, mocking examples, and coverage details
+
+### Automated Tests (Rust)
+
+Run all tests:
+```bash
+cd src-tauri && cargo test
+```
+
+**Unit Tests** (inline `#[cfg(test)]` modules):
+- `audio/cache.rs` - LRU cache logic, eviction, invalidation
+- `audio/waveform.rs` - Peak generation, normalization, duration
+- `audio/manager.rs` - State machine, playback IDs, stop signals
+- `audio/playback.rs` - Volume curve, linear interpolation
+- `audio/mod.rs` - DeviceId parsing and formatting
+- `persistence.rs` - Atomic file writes
+- `sounds.rs` - Sound/Category CRUD, SoundId/CategoryId, UUID generation
+- `settings.rs` - AppSettings defaults, serialization, DeviceId integration
+- `hotkeys.rs` - HotkeyMappings CRUD, sound-hotkey associations
+
+**Integration Tests** (`src-tauri/tests/`):
+- `audio_decode.rs` - Test fixture validation (MP3, OGG, M4A)
+
+**Test Fixtures**: `src-tauri/tests/fixtures/`
+- `test_mono.mp3` - 1s, 44.1kHz, Mono
+- `test_stereo.ogg` - 1s, 48kHz, Stereo
+- `test_stereo.m4a` - 1s, 48kHz, Stereo
+
+### Automated Tests (Frontend)
+
+Run all tests:
+```bash
+yarn test        # Watch mode
+yarn test:run    # Single run
+yarn test:coverage  # With coverage
+```
+
+**Unit Tests** (Vitest + Testing Library):
+- `src/utils/hotkeyDisplay.test.ts` - Hotkey formatting and parsing
+- `src/utils/waveformQueue.test.ts` - Waveform queue logic with mocked Tauri invoke
+
+**Test Setup** (`src/test/setup.ts`):
+- Mocks for Tauri API (`@tauri-apps/api/core`, `@tauri-apps/api/event`)
+- Mocks for browser APIs (`matchMedia`, `ResizeObserver`)
+
+### Code Coverage
+
+**Rust Coverage:** cargo-llvm-cov (LLVM-based source coverage)
+```bash
+# Generate coverage report (opens in browser)
+cd src-tauri && cargo llvm-cov --html --open
+
+# With threshold check (same as CI)
+cd src-tauri && cargo llvm-cov --fail-under-lines 45
+
+# Generate LCOV report
+cd src-tauri && cargo llvm-cov --lcov --output-path lcov.info
+```
+
+**Frontend Coverage:** @vitest/coverage-v8
+```bash
+yarn test:coverage
+```
+
+**CI Integration:**
+- Rust and Frontend coverage automatically generated on PRs
+- Rust threshold: 45% line coverage
+- Frontend threshold: 5% line coverage (will be raised as more tests are added)
+- Reports on Codecov: https://codecov.io/gh/dranelixx/SonicDeck
+- HTML reports available as CI artifacts
+
+### CI Workflow Structure
+
+- **rust.yml**: Fast quality checks (fmt, clippy, check) - no tests
+- **tests.yml**: Full test suite + coverage (Rust + Frontend)
+- **frontend.yml**: Prettier, ESLint, TypeScript checks
+- **claude-code-review.yml**: AI code review on PRs to main
+
 ### Pre-Commit Checklist (Auto-enforced by Husky)
 
 1. `yarn typecheck` - No TypeScript errors
 2. `yarn lint` - No ESLint errors
 3. `cargo check --manifest-path src-tauri/Cargo.toml` - Rust compiles
-4. `yarn tauri dev` - App runs
-5. Manual testing of changed functionality
+4. `cargo test --manifest-path src-tauri/Cargo.toml` - All tests pass
+5. `yarn tauri dev` - App runs
+6. Manual testing of changed functionality
 
 ### Testing Resources
 
@@ -451,6 +540,16 @@ When starting new work, check the "Now/Next/Later" note first for current priori
 
 ## Resources
 
+**Codebase Documentation** (`.planning/codebase/`):
+- `STACK.md` - Technologies, dependencies, runtime requirements
+- `ARCHITECTURE.md` - System design, layers, data flow, abstractions
+- `STRUCTURE.md` - Directory layout, naming conventions, where to add code
+- `CONVENTIONS.md` - Code style, naming patterns, error handling
+- `TESTING.md` - Test framework, patterns, coverage, mocking
+- `INTEGRATIONS.md` - External services (currently none - offline app)
+- `CONCERNS.md` - Known bugs, tech debt, security, performance (with issue refs)
+
+**External Documentation**:
 - **Tauri**: <https://v2.tauri.app/>
 - **React**: <https://react.dev/>
 - **TailwindCSS**: <https://tailwindcss.com/docs>

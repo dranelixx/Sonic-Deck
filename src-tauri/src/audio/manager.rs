@@ -153,3 +153,153 @@ impl Default for AudioManager {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::mpsc;
+
+    #[test]
+    fn test_audio_manager_new() {
+        let manager = AudioManager::new();
+        assert_eq!(manager.stop_senders.lock().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn test_audio_manager_with_cache_size() {
+        let manager = AudioManager::with_cache_size(100);
+        let stats = manager.cache_stats();
+        assert_eq!(stats.max_memory_mb, 100);
+    }
+
+    #[test]
+    fn test_playback_id_generation() {
+        let manager = AudioManager::new();
+
+        let id1 = manager.next_playback_id();
+        let id2 = manager.next_playback_id();
+        let id3 = manager.next_playback_id();
+
+        assert_eq!(id1, "playback_1");
+        assert_eq!(id2, "playback_2");
+        assert_eq!(id3, "playback_3");
+    }
+
+    #[test]
+    fn test_playback_id_sequential() {
+        let manager = AudioManager::new();
+
+        for i in 1..=100 {
+            let id = manager.next_playback_id();
+            assert_eq!(id, format!("playback_{}", i));
+        }
+    }
+
+    #[test]
+    fn test_register_and_signal_stop() {
+        let manager = AudioManager::new();
+        let (tx, rx) = mpsc::channel::<()>();
+
+        manager.register_playback("playback_1".to_string(), tx);
+
+        // Signal stop should return true and send to channel
+        assert!(manager.signal_stop("playback_1"));
+        assert!(rx.try_recv().is_ok());
+
+        // Signal again should return false (already removed)
+        assert!(!manager.signal_stop("playback_1"));
+    }
+
+    #[test]
+    fn test_signal_stop_nonexistent() {
+        let manager = AudioManager::new();
+        assert!(!manager.signal_stop("nonexistent"));
+    }
+
+    #[test]
+    fn test_stop_all() {
+        let manager = AudioManager::new();
+        let (tx1, rx1) = mpsc::channel::<()>();
+        let (tx2, rx2) = mpsc::channel::<()>();
+
+        manager.register_playback("playback_1".to_string(), tx1);
+        manager.register_playback("playback_2".to_string(), tx2);
+
+        manager.stop_all();
+
+        // Both channels should receive stop signal
+        assert!(rx1.try_recv().is_ok());
+        assert!(rx2.try_recv().is_ok());
+
+        // Senders should be cleared
+        assert_eq!(manager.stop_senders.lock().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn test_sound_state_decoding() {
+        let manager = AudioManager::new();
+
+        manager.register_sound_decoding("sound_1".to_string(), "playback_1".to_string());
+
+        let state = manager.get_sound_state("sound_1");
+        assert!(state.is_some());
+
+        if let Some(SoundState::Decoding { playback_id }) = state {
+            assert_eq!(playback_id, "playback_1");
+        } else {
+            panic!("Expected Decoding state");
+        }
+    }
+
+    #[test]
+    fn test_sound_state_playing() {
+        let manager = AudioManager::new();
+
+        // Simulate transition to Playing state
+        let active_sounds = manager.get_active_sounds();
+        active_sounds.lock().unwrap().insert(
+            "sound_1".to_string(),
+            SoundState::Playing {
+                playback_id: "playback_1".to_string(),
+                started_at: std::time::Instant::now(),
+            },
+        );
+
+        let state = manager.get_sound_state("sound_1");
+        assert!(state.is_some());
+
+        if let Some(SoundState::Playing { playback_id, .. }) = state {
+            assert_eq!(playback_id, "playback_1");
+        } else {
+            panic!("Expected Playing state");
+        }
+    }
+
+    #[test]
+    fn test_sound_state_nonexistent() {
+        let manager = AudioManager::new();
+        assert!(manager.get_sound_state("nonexistent").is_none());
+    }
+
+    #[test]
+    fn test_sound_state_playback_id() {
+        let decoding = SoundState::Decoding {
+            playback_id: "pb_1".to_string(),
+        };
+        assert_eq!(decoding.playback_id(), "pb_1");
+
+        let playing = SoundState::Playing {
+            playback_id: "pb_2".to_string(),
+            started_at: std::time::Instant::now(),
+        };
+        assert_eq!(playing.playback_id(), "pb_2");
+    }
+
+    #[test]
+    fn test_cache_clear() {
+        let manager = AudioManager::new();
+        manager.clear_cache();
+        let stats = manager.cache_stats();
+        assert_eq!(stats.entries, 0);
+    }
+}

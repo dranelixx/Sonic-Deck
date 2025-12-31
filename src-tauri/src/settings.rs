@@ -31,6 +31,12 @@ pub struct AppSettings {
     /// Enable autostart on system boot
     #[serde(default)]
     pub autostart_enabled: bool,
+    /// Microphone device ID for VB-Cable routing
+    #[serde(default)]
+    pub microphone_routing_device_id: Option<String>,
+    /// Whether microphone routing is enabled
+    #[serde(default)]
+    pub microphone_routing_enabled: bool,
 }
 
 fn default_volume_multiplier() -> f32 {
@@ -52,6 +58,8 @@ impl Default for AppSettings {
             minimize_to_tray: default_minimize_to_tray(),
             start_minimized: false,
             autostart_enabled: false,
+            microphone_routing_device_id: None,
+            microphone_routing_enabled: false,
         }
     }
 }
@@ -96,4 +104,163 @@ pub fn save(settings: &AppSettings, app_handle: &tauri::AppHandle) -> Result<(),
         .map_err(|e| format!("Failed to serialize settings: {}", e))?;
 
     crate::persistence::atomic_write(&settings_path, &json)
+}
+
+// ============================================================================
+// Tests
+// ============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // -------------------------------------------------------------------------
+    // Default Value Tests
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn test_default_volume_multiplier() {
+        assert_eq!(default_volume_multiplier(), 1.0);
+    }
+
+    #[test]
+    fn test_default_minimize_to_tray() {
+        assert!(default_minimize_to_tray());
+    }
+
+    // -------------------------------------------------------------------------
+    // AppSettings::default() Tests
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn test_app_settings_default() {
+        let settings = AppSettings::default();
+
+        assert_eq!(settings.monitor_device_id, None);
+        assert_eq!(settings.broadcast_device_id, None);
+        assert_eq!(settings.default_volume, 0.5);
+        assert_eq!(settings.volume_multiplier, 1.0);
+        assert_eq!(settings.last_file_path, None);
+        assert!(settings.minimize_to_tray);
+        assert!(!settings.start_minimized);
+        assert!(!settings.autostart_enabled);
+        assert_eq!(settings.microphone_routing_device_id, None);
+        assert!(!settings.microphone_routing_enabled);
+    }
+
+    #[test]
+    fn test_app_settings_default_volume_range() {
+        let settings = AppSettings::default();
+        assert!(settings.default_volume >= 0.0 && settings.default_volume <= 1.0);
+    }
+
+    // -------------------------------------------------------------------------
+    // Serialization Tests
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn test_app_settings_serde_roundtrip() {
+        let settings = AppSettings::default();
+
+        let json = serde_json::to_string(&settings).unwrap();
+        let deserialized: AppSettings = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.default_volume, settings.default_volume);
+        assert_eq!(deserialized.volume_multiplier, settings.volume_multiplier);
+        assert_eq!(deserialized.minimize_to_tray, settings.minimize_to_tray);
+    }
+
+    #[test]
+    fn test_app_settings_serde_with_devices() {
+        let settings = AppSettings {
+            monitor_device_id: Some(DeviceId::from_index(0)),
+            broadcast_device_id: Some(DeviceId::from_index(1)),
+            default_volume: 0.75,
+            volume_multiplier: 0.5,
+            last_file_path: Some("/path/to/file.mp3".to_string()),
+            minimize_to_tray: false,
+            start_minimized: true,
+            autostart_enabled: true,
+            microphone_routing_device_id: Some("device_2".to_string()),
+            microphone_routing_enabled: true,
+        };
+
+        let json = serde_json::to_string(&settings).unwrap();
+        let deserialized: AppSettings = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(
+            deserialized.monitor_device_id,
+            Some(DeviceId::from_index(0))
+        );
+        assert_eq!(
+            deserialized.broadcast_device_id,
+            Some(DeviceId::from_index(1))
+        );
+        assert_eq!(deserialized.default_volume, 0.75);
+        assert_eq!(deserialized.volume_multiplier, 0.5);
+        assert_eq!(
+            deserialized.last_file_path,
+            Some("/path/to/file.mp3".to_string())
+        );
+        assert!(!deserialized.minimize_to_tray);
+        assert!(deserialized.start_minimized);
+        assert!(deserialized.autostart_enabled);
+        assert_eq!(
+            deserialized.microphone_routing_device_id,
+            Some("device_2".to_string())
+        );
+        assert!(deserialized.microphone_routing_enabled);
+    }
+
+    #[test]
+    fn test_app_settings_deserialize_with_defaults() {
+        // Simulate JSON without optional fields (serde should use defaults)
+        let json = r#"{
+            "monitor_device_id": null,
+            "broadcast_device_id": null,
+            "default_volume": 0.5,
+            "last_file_path": null
+        }"#;
+
+        let settings: AppSettings = serde_json::from_str(json).unwrap();
+
+        // These fields should use their #[serde(default)] values
+        assert_eq!(settings.volume_multiplier, 1.0);
+        assert!(settings.minimize_to_tray);
+        assert!(!settings.start_minimized);
+        assert!(!settings.autostart_enabled);
+        assert_eq!(settings.microphone_routing_device_id, None);
+        assert!(!settings.microphone_routing_enabled);
+    }
+
+    #[test]
+    fn test_app_settings_json_format() {
+        let settings = AppSettings::default();
+        let json = serde_json::to_string_pretty(&settings).unwrap();
+
+        // Verify it's valid JSON and contains expected fields
+        assert!(json.contains("monitor_device_id"));
+        assert!(json.contains("broadcast_device_id"));
+        assert!(json.contains("default_volume"));
+        assert!(json.contains("volume_multiplier"));
+        assert!(json.contains("minimize_to_tray"));
+    }
+
+    // -------------------------------------------------------------------------
+    // DeviceId Integration Tests
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn test_device_id_in_settings() {
+        let device = DeviceId::from_index(5);
+        let settings = AppSettings {
+            monitor_device_id: Some(device.clone()),
+            ..AppSettings::default()
+        };
+
+        assert_eq!(
+            settings.monitor_device_id.as_ref().unwrap().to_string(),
+            "device_5"
+        );
+    }
 }

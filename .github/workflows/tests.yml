@@ -1,0 +1,111 @@
+name: Tests & Coverage
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  rust-tests:
+    name: Rust Tests & Coverage
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            src-tauri/target/
+          key: ${{ runner.os }}-cargo-tests-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install frontend dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build frontend
+        run: yarn build
+
+      # Code Coverage with cargo-llvm-cov
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Run tests with coverage
+        working-directory: src-tauri
+        run: cargo llvm-cov --all-features --lcov --output-path lcov.info
+
+      - name: Check coverage threshold (45%)
+        working-directory: src-tauri
+        run: cargo llvm-cov report --fail-under-lines 45
+
+      - name: Generate HTML coverage report
+        working-directory: src-tauri
+        run: cargo llvm-cov report --html --output-dir coverage-html
+
+      - name: Upload Rust coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: src-tauri/lcov.info
+          flags: rust
+          fail_ci_if_error: true
+
+      - name: Upload HTML coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-coverage-report
+          path: src-tauri/coverage-html/
+
+  frontend-tests:
+    name: Frontend Tests & Coverage
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Run tests with coverage and JUnit report
+        run: yarn vitest run --coverage --reporter=default --reporter=junit --outputFile=test-report.junit.xml
+
+      - name: Upload Frontend coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/lcov.info
+          flags: frontend
+          fail_ci_if_error: true
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: test-report.junit.xml
+          flags: frontend
+          report_type: test_results
+
+      - name: Upload HTML coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-report
+          path: coverage/

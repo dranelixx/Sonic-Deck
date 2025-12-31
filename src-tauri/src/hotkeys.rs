@@ -97,3 +97,237 @@ pub fn get_hotkeys_for_sound(mappings: &HotkeyMappings, sound_id: &SoundId) -> V
         .map(|(hotkey, _)| hotkey.clone())
         .collect()
 }
+
+// ============================================================================
+// Tests
+// ============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Helper to create a test SoundId
+    fn test_sound_id(id: &str) -> SoundId {
+        // Use the internal constructor pattern from sounds.rs
+        serde_json::from_str(&format!("\"{}\"", id)).unwrap()
+    }
+
+    // -------------------------------------------------------------------------
+    // HotkeyMappings::default Tests
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn test_hotkey_mappings_default() {
+        let mappings = HotkeyMappings::default();
+        assert!(mappings.mappings.is_empty());
+    }
+
+    // -------------------------------------------------------------------------
+    // add_mapping Tests
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn test_add_mapping_success() {
+        let mut mappings = HotkeyMappings::default();
+        let sound_id = test_sound_id("sound-1");
+
+        let result = add_mapping(&mut mappings, "Ctrl+A".to_string(), sound_id.clone());
+
+        assert!(result.is_ok());
+        assert_eq!(mappings.mappings.len(), 1);
+        assert_eq!(mappings.mappings.get("Ctrl+A"), Some(&sound_id));
+    }
+
+    #[test]
+    fn test_add_mapping_multiple() {
+        let mut mappings = HotkeyMappings::default();
+        let sound1 = test_sound_id("sound-1");
+        let sound2 = test_sound_id("sound-2");
+
+        add_mapping(&mut mappings, "Ctrl+A".to_string(), sound1.clone()).unwrap();
+        add_mapping(&mut mappings, "Ctrl+B".to_string(), sound2.clone()).unwrap();
+
+        assert_eq!(mappings.mappings.len(), 2);
+    }
+
+    #[test]
+    fn test_add_mapping_duplicate_hotkey_fails() {
+        let mut mappings = HotkeyMappings::default();
+        let sound1 = test_sound_id("sound-1");
+        let sound2 = test_sound_id("sound-2");
+
+        add_mapping(&mut mappings, "Ctrl+A".to_string(), sound1).unwrap();
+        let result = add_mapping(&mut mappings, "Ctrl+A".to_string(), sound2);
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("already assigned"));
+    }
+
+    #[test]
+    fn test_add_mapping_same_sound_different_hotkeys() {
+        let mut mappings = HotkeyMappings::default();
+        let sound = test_sound_id("sound-1");
+
+        add_mapping(&mut mappings, "Ctrl+A".to_string(), sound.clone()).unwrap();
+        let result = add_mapping(&mut mappings, "Ctrl+B".to_string(), sound.clone());
+
+        assert!(result.is_ok());
+        assert_eq!(mappings.mappings.len(), 2);
+    }
+
+    // -------------------------------------------------------------------------
+    // remove_mapping Tests
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn test_remove_mapping_success() {
+        let mut mappings = HotkeyMappings::default();
+        let sound = test_sound_id("sound-1");
+
+        add_mapping(&mut mappings, "Ctrl+A".to_string(), sound).unwrap();
+        assert_eq!(mappings.mappings.len(), 1);
+
+        let result = remove_mapping(&mut mappings, "Ctrl+A");
+
+        assert!(result.is_ok());
+        assert!(mappings.mappings.is_empty());
+    }
+
+    #[test]
+    fn test_remove_mapping_not_found() {
+        let mut mappings = HotkeyMappings::default();
+
+        let result = remove_mapping(&mut mappings, "Ctrl+X");
+
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("not found"));
+    }
+
+    #[test]
+    fn test_remove_mapping_preserves_others() {
+        let mut mappings = HotkeyMappings::default();
+        let sound1 = test_sound_id("sound-1");
+        let sound2 = test_sound_id("sound-2");
+
+        add_mapping(&mut mappings, "Ctrl+A".to_string(), sound1).unwrap();
+        add_mapping(&mut mappings, "Ctrl+B".to_string(), sound2.clone()).unwrap();
+
+        remove_mapping(&mut mappings, "Ctrl+A").unwrap();
+
+        assert_eq!(mappings.mappings.len(), 1);
+        assert_eq!(mappings.mappings.get("Ctrl+B"), Some(&sound2));
+    }
+
+    // -------------------------------------------------------------------------
+    // get_sound_id Tests
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn test_get_sound_id_found() {
+        let mut mappings = HotkeyMappings::default();
+        let sound = test_sound_id("sound-1");
+
+        add_mapping(&mut mappings, "Ctrl+A".to_string(), sound.clone()).unwrap();
+
+        let result = get_sound_id(&mappings, "Ctrl+A");
+
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), &sound);
+    }
+
+    #[test]
+    fn test_get_sound_id_not_found() {
+        let mappings = HotkeyMappings::default();
+
+        let result = get_sound_id(&mappings, "Ctrl+X");
+
+        assert!(result.is_none());
+    }
+
+    // -------------------------------------------------------------------------
+    // get_hotkeys_for_sound Tests
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn test_get_hotkeys_for_sound_single() {
+        let mut mappings = HotkeyMappings::default();
+        let sound = test_sound_id("sound-1");
+
+        add_mapping(&mut mappings, "Ctrl+A".to_string(), sound.clone()).unwrap();
+
+        let hotkeys = get_hotkeys_for_sound(&mappings, &sound);
+
+        assert_eq!(hotkeys.len(), 1);
+        assert!(hotkeys.contains(&"Ctrl+A".to_string()));
+    }
+
+    #[test]
+    fn test_get_hotkeys_for_sound_multiple() {
+        let mut mappings = HotkeyMappings::default();
+        let sound = test_sound_id("sound-1");
+
+        add_mapping(&mut mappings, "Ctrl+A".to_string(), sound.clone()).unwrap();
+        add_mapping(&mut mappings, "Ctrl+B".to_string(), sound.clone()).unwrap();
+        add_mapping(&mut mappings, "Ctrl+C".to_string(), sound.clone()).unwrap();
+
+        let hotkeys = get_hotkeys_for_sound(&mappings, &sound);
+
+        assert_eq!(hotkeys.len(), 3);
+    }
+
+    #[test]
+    fn test_get_hotkeys_for_sound_none() {
+        let mappings = HotkeyMappings::default();
+        let sound = test_sound_id("sound-1");
+
+        let hotkeys = get_hotkeys_for_sound(&mappings, &sound);
+
+        assert!(hotkeys.is_empty());
+    }
+
+    #[test]
+    fn test_get_hotkeys_for_sound_filters_other_sounds() {
+        let mut mappings = HotkeyMappings::default();
+        let sound1 = test_sound_id("sound-1");
+        let sound2 = test_sound_id("sound-2");
+
+        add_mapping(&mut mappings, "Ctrl+A".to_string(), sound1.clone()).unwrap();
+        add_mapping(&mut mappings, "Ctrl+B".to_string(), sound2).unwrap();
+        add_mapping(&mut mappings, "Ctrl+C".to_string(), sound1.clone()).unwrap();
+
+        let hotkeys = get_hotkeys_for_sound(&mappings, &sound1);
+
+        assert_eq!(hotkeys.len(), 2);
+        assert!(hotkeys.contains(&"Ctrl+A".to_string()));
+        assert!(hotkeys.contains(&"Ctrl+C".to_string()));
+        assert!(!hotkeys.contains(&"Ctrl+B".to_string()));
+    }
+
+    // -------------------------------------------------------------------------
+    // Serialization Tests
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn test_hotkey_mappings_serde_roundtrip() {
+        let mut mappings = HotkeyMappings::default();
+        let sound = test_sound_id("sound-1");
+
+        add_mapping(&mut mappings, "Ctrl+Shift+A".to_string(), sound).unwrap();
+
+        let json = serde_json::to_string(&mappings).unwrap();
+        let deserialized: HotkeyMappings = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(deserialized.mappings.len(), 1);
+        assert!(deserialized.mappings.contains_key("Ctrl+Shift+A"));
+    }
+
+    #[test]
+    fn test_hotkey_mappings_empty_serde() {
+        let mappings = HotkeyMappings::default();
+
+        let json = serde_json::to_string(&mappings).unwrap();
+        let deserialized: HotkeyMappings = serde_json::from_str(&json).unwrap();
+
+        assert!(deserialized.mappings.is_empty());
+    }
+}

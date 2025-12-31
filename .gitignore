@@ -56,3 +56,8 @@ tmp_rovodev_*
 # *.mp3
 # *.wav
 # *.ogg
+
+# Coverage
+/src-tauri/lcov.info
+/src-tauri/coverage-html/
+/coverage/

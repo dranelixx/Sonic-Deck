@@ -7,6 +7,7 @@ Designed for gamers, streamers, and content creators who need professional audio
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Version](https://img.shields.io/badge/version-0.8.0--alpha-orange)](https://github.com/DraneLixX/SonicDeck/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows-blue)](https://github.com/DraneLixX/SonicDeck)
+[![Coverage](https://codecov.io/gh/dranelixx/SonicDeck/branch/main/graph/badge.svg)](https://codecov.io/gh/dranelixx/SonicDeck)
 
 > **Status:** Currently in beta testing - [Download Latest Release](https://github.com/DraneLixX/SonicDeck/releases)
 
@@ -26,14 +27,26 @@ Designed for gamers, streamers, and content creators who need professional audio
 <details>
 <summary>Click to view all settings panels</summary>
 
-![Settings - Audio Devices](docs/screenshots/settings_1.jpg)
-*Audio device configuration with dual-output routing*
+![Settings - VB-Cable & Audio Devices](docs/screenshots/settings_1.jpg)
+*VB-Cable integration, audio device configuration, and playback preferences*
 
-![Settings - Playback & System Tray](docs/screenshots/settings_2.jpg)
-*Playback settings and system tray integration*
+![Settings - System Tray & Devices](docs/screenshots/settings_2.jpg)
+*System tray options, startup behavior, and available devices overview*
 
 ![Settings - About](docs/screenshots/settings_3.jpg)
 *App information and external links*
+
+</details>
+
+### VB-Cable Integration (Discord Audio Routing)
+<details>
+<summary>Click to view VB-Cable setup states</summary>
+
+![VB-Cable Installed](docs/screenshots/settings_vbcable_installed.jpg)
+*VB-Cable installed with microphone routing options*
+
+![VB-Cable Routing Enabled](docs/screenshots/settings_vbcable_routing.jpg)
+*Microphone routing active - friends hear you AND your sounds*
 
 </details>
 
@@ -58,12 +71,22 @@ Designed for gamers, streamers, and content creators who need professional audio
 
 ---
 
-## ✨ Features
+## Features
 
-### 🎧 Dual-Audio Routing
+### VB-Cable Integration (Discord Audio Routing)
+Share your soundboard with Discord friends while they can still hear your voice:
+- **One-Click Install**: Automatic VB-Cable download and setup from within the app
+- **Microphone Routing**: Your voice gets mixed with sounds - friends hear both
+- **Auto-Switch**: Windows communications device automatically switches when app is active
+- **Device Protection**: Original Windows default devices automatically restored after install
+- **Low Latency**: 100ms audio passthrough for natural voice chat
+
+> **App Setup**: In Discord, Zoom, Teams, etc. set your input device to **"Default"** (not "CABLE Output"). SonicDeck automatically manages the Windows default device.
+
+### Dual-Audio Routing
 Play sounds to two separate audio devices simultaneously (e.g., headphones + virtual audio cable for streaming).
 
-### 🎛️ Sound Library Management
+### Sound Library Management
 - **Category Organization**: Organize sounds with custom categories
 - **Drag & Drop Import**: Drop MP3, WAV, OGG, or M4A/AAC files directly into the app
 - **Favorites System**: Star your most-used sounds for quick access

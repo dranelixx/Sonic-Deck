@@ -103,3 +103,183 @@ pub fn decode_audio_file(file_path: &str) -> Result<AudioData, AudioError> {
         channels,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    fn get_fixture_path(filename: &str) -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("tests")
+            .join("fixtures")
+            .join(filename)
+    }
+
+    // ========== Error handling tests ==========
+
+    #[test]
+    fn test_decode_nonexistent_file() {
+        let result = decode_audio_file("/nonexistent/path/audio.mp3");
+        assert!(result.is_err());
+
+        let err = result.unwrap_err();
+        match err {
+            AudioError::FileOpen(_) => {}
+            _ => panic!("Expected AudioError::FileOpen, got {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_decode_invalid_file_extension() {
+        // Try to decode a file with unsupported extension
+        let result = decode_audio_file("/some/path/file.xyz");
+        assert!(result.is_err());
+    }
+
+    // ========== MP3 format tests ==========
+
+    #[test]
+    fn test_decode_mp3_fixture() {
+        let path = get_fixture_path("test_mono.mp3");
+        let result = decode_audio_file(path.to_str().unwrap());
+
+        assert!(result.is_ok(), "Failed to decode MP3: {:?}", result.err());
+
+        let audio = result.unwrap();
+        assert!(!audio.samples.is_empty(), "MP3 should have samples");
+        assert_eq!(audio.sample_rate, 44100, "MP3 should be 44.1kHz");
+        assert_eq!(audio.channels, 1, "MP3 should be mono");
+    }
+
+    #[test]
+    fn test_decode_mp3_sample_count() {
+        let path = get_fixture_path("test_mono.mp3");
+        let audio = decode_audio_file(path.to_str().unwrap()).unwrap();
+
+        // 1 second at 44.1kHz mono = ~44100 samples (with some tolerance for codec)
+        let expected_samples = 44100;
+        let tolerance = 5000; // Allow some variance due to encoder padding
+
+        assert!(
+            (audio.samples.len() as i32 - expected_samples as i32).abs() < tolerance,
+            "Expected ~{} samples, got {}",
+            expected_samples,
+            audio.samples.len()
+        );
+    }
+
+    // ========== OGG/Vorbis format tests ==========
+
+    #[test]
+    fn test_decode_ogg_fixture() {
+        let path = get_fixture_path("test_stereo.ogg");
+        let result = decode_audio_file(path.to_str().unwrap());
+
+        assert!(result.is_ok(), "Failed to decode OGG: {:?}", result.err());
+
+        let audio = result.unwrap();
+        assert!(!audio.samples.is_empty(), "OGG should have samples");
+        assert_eq!(audio.sample_rate, 48000, "OGG should be 48kHz");
+        assert_eq!(audio.channels, 2, "OGG should be stereo");
+    }
+
+    #[test]
+    fn test_decode_ogg_sample_count() {
+        let path = get_fixture_path("test_stereo.ogg");
+        let audio = decode_audio_file(path.to_str().unwrap()).unwrap();
+
+        // 1 second at 48kHz stereo = ~96000 samples (interleaved)
+        let expected_samples = 96000;
+        let tolerance = 10000;
+
+        assert!(
+            (audio.samples.len() as i32 - expected_samples as i32).abs() < tolerance,
+            "Expected ~{} samples, got {}",
+            expected_samples,
+            audio.samples.len()
+        );
+    }
+
+    // ========== M4A/AAC format tests ==========
+
+    #[test]
+    fn test_decode_m4a_fixture() {
+        let path = get_fixture_path("test_stereo.m4a");
+        let result = decode_audio_file(path.to_str().unwrap());
+
+        assert!(result.is_ok(), "Failed to decode M4A: {:?}", result.err());
+
+        let audio = result.unwrap();
+        assert!(!audio.samples.is_empty(), "M4A should have samples");
+        assert_eq!(audio.sample_rate, 48000, "M4A should be 48kHz");
+        assert_eq!(audio.channels, 2, "M4A should be stereo");
+    }
+
+    #[test]
+    fn test_decode_m4a_sample_count() {
+        let path = get_fixture_path("test_stereo.m4a");
+        let audio = decode_audio_file(path.to_str().unwrap()).unwrap();
+
+        // 1 second at 48kHz stereo = ~96000 samples (interleaved)
+        let expected_samples = 96000;
+        let tolerance = 10000;
+
+        assert!(
+            (audio.samples.len() as i32 - expected_samples as i32).abs() < tolerance,
+            "Expected ~{} samples, got {}",
+            expected_samples,
+            audio.samples.len()
+        );
+    }
+
+    // ========== Sample data validation tests ==========
+
+    #[test]
+    fn test_decoded_samples_are_normalized() {
+        let path = get_fixture_path("test_mono.mp3");
+        let audio = decode_audio_file(path.to_str().unwrap()).unwrap();
+
+        // All samples should be in valid f32 range [-1.0, 1.0] (or slightly beyond for some codecs)
+        for sample in &audio.samples {
+            assert!(
+                sample.is_finite(),
+                "Sample should be finite, got {}",
+                sample
+            );
+            assert!(
+                *sample >= -2.0 && *sample <= 2.0,
+                "Sample {} outside reasonable range",
+                sample
+            );
+        }
+    }
+
+    #[test]
+    fn test_all_formats_produce_consistent_data() {
+        // Verify all supported formats produce AudioData with valid fields
+        let formats = vec![
+            ("test_mono.mp3", 44100, 1),
+            ("test_stereo.ogg", 48000, 2),
+            ("test_stereo.m4a", 48000, 2),
+        ];
+
+        for (filename, expected_rate, expected_channels) in formats {
+            let path = get_fixture_path(filename);
+            let audio = decode_audio_file(path.to_str().unwrap())
+                .unwrap_or_else(|e| panic!("Failed to decode {}: {:?}", filename, e));
+
+            assert_eq!(
+                audio.sample_rate, expected_rate,
+                "{} has wrong sample rate",
+                filename
+            );
+            assert_eq!(
+                audio.channels, expected_channels,
+                "{} has wrong channel count",
+                filename
+            );
+            assert!(!audio.samples.is_empty(), "{} has no samples", filename);
+        }
+    }
+}

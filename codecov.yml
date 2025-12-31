@@ -1,0 +1,19 @@
+# Codecov Configuration for SonicDeck
+# Docs: https://docs.codecov.com/docs/codecovyml-reference
+
+coverage:
+  status:
+    project:
+      default:
+        target: 70%
+        threshold: 5%
+        informational: true  # Goal to work towards, doesn't block PRs
+    patch:
+      default:
+        target: 70%
+        informational: true  # Shows coverage on new code, doesn't block PRs
+
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: true

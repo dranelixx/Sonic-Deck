@@ -208,6 +208,125 @@ impl Default for AudioCache {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Create test AudioData with specified sample count
+    fn create_test_audio(sample_count: usize) -> AudioData {
+        AudioData {
+            samples: vec![0.0; sample_count],
+            sample_rate: 48000,
+            channels: 2,
+        }
+    }
+
+    #[test]
+    fn test_cache_new_default_size() {
+        let cache = AudioCache::new(0);
+        assert_eq!(cache.max_bytes, DEFAULT_MAX_CACHE_BYTES);
+    }
+
+    #[test]
+    fn test_cache_new_custom_size() {
+        let cache = AudioCache::new(100);
+        assert_eq!(cache.max_bytes, 100 * 1024 * 1024);
+    }
+
+    #[test]
+    fn test_cache_size_estimation() {
+        let audio = create_test_audio(1000);
+        let size = AudioCache::estimate_size(&audio);
+        assert_eq!(size, 1000 * BYTES_PER_SAMPLE);
+    }
+
+    #[test]
+    fn test_cache_stats_initial() {
+        let cache = AudioCache::new(100);
+        let stats = cache.stats();
+        assert_eq!(stats.entries, 0);
+        assert_eq!(stats.memory_bytes, 0);
+        assert_eq!(stats.max_memory_mb, 100);
+    }
+
+    #[test]
+    fn test_cache_clear() {
+        let mut cache = AudioCache::new(100);
+        // Manually insert an entry for testing
+        let audio = Arc::new(create_test_audio(1000));
+        let entry = CacheEntry {
+            audio_data: audio,
+            file_modified: None,
+            size_bytes: 4000,
+        };
+        cache.cache.put("test.mp3".to_string(), entry);
+        cache.current_bytes = 4000;
+
+        cache.clear();
+
+        assert_eq!(cache.cache.len(), 0);
+        assert_eq!(cache.current_bytes, 0);
+    }
+
+    #[test]
+    fn test_cache_invalidate() {
+        let mut cache = AudioCache::new(100);
+        let audio = Arc::new(create_test_audio(1000));
+        let entry = CacheEntry {
+            audio_data: audio,
+            file_modified: None,
+            size_bytes: 4000,
+        };
+        cache.cache.put("test.mp3".to_string(), entry);
+        cache.current_bytes = 4000;
+
+        cache.invalidate("test.mp3");
+
+        assert_eq!(cache.cache.len(), 0);
+        assert_eq!(cache.current_bytes, 0);
+    }
+
+    #[test]
+    fn test_cache_invalidate_nonexistent() {
+        let mut cache = AudioCache::new(100);
+        // Should not panic
+        cache.invalidate("nonexistent.mp3");
+        assert_eq!(cache.cache.len(), 0);
+    }
+
+    #[test]
+    fn test_make_space_eviction() {
+        let mut cache = AudioCache::new(1); // 1 MB max
+        let one_mb = 1024 * 1024;
+
+        // Add first entry (500KB)
+        let audio1 = Arc::new(create_test_audio(500 * 1024 / BYTES_PER_SAMPLE));
+        let entry1 = CacheEntry {
+            audio_data: audio1,
+            file_modified: None,
+            size_bytes: 500 * 1024,
+        };
+        cache.cache.put("first.mp3".to_string(), entry1);
+        cache.current_bytes = 500 * 1024;
+
+        // Add second entry (500KB)
+        let audio2 = Arc::new(create_test_audio(500 * 1024 / BYTES_PER_SAMPLE));
+        let entry2 = CacheEntry {
+            audio_data: audio2,
+            file_modified: None,
+            size_bytes: 500 * 1024,
+        };
+        cache.cache.put("second.mp3".to_string(), entry2);
+        cache.current_bytes = 1024 * 1024;
+
+        // Request space for 600KB - should evict LRU (first.mp3)
+        cache.make_space(600 * 1024);
+
+        assert!(cache.current_bytes <= one_mb);
+        assert!(cache.cache.get("first.mp3").is_none());
+    }
+}
+
 /// Cache statistics for monitoring
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct CacheStats {
