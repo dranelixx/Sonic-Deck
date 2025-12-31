@@ -23,6 +23,8 @@ export interface AppSettings {
   autostart_enabled: boolean; // Enable autostart on system boot
   microphone_routing_device_id: string | null; // Microphone device ID for VB-Cable routing
   microphone_routing_enabled: boolean; // Whether microphone routing is enabled
+  enable_lufs_normalization: boolean; // Enable LUFS-based loudness normalization
+  target_lufs: number; // Target loudness in LUFS (range: -23 to -7, default: -14)
 }
 
 // ============================================================================

@@ -37,6 +37,12 @@ pub struct AppSettings {
     /// Whether microphone routing is enabled
     #[serde(default)]
     pub microphone_routing_enabled: bool,
+    /// Enable LUFS-based loudness normalization
+    #[serde(default)]
+    pub enable_lufs_normalization: bool,
+    /// Target loudness in LUFS (default: -14.0, range: -23.0 to -7.0)
+    #[serde(default = "default_target_lufs")]
+    pub target_lufs: f32,
 }
 
 fn default_volume_multiplier() -> f32 {
@@ -45,6 +51,10 @@ fn default_volume_multiplier() -> f32 {
 
 fn default_minimize_to_tray() -> bool {
     true // Default: close minimizes to tray
+}
+
+fn default_target_lufs() -> f32 {
+    -14.0 // Streaming standard (Spotify, YouTube)
 }
 
 impl Default for AppSettings {
@@ -60,6 +70,8 @@ impl Default for AppSettings {
             autostart_enabled: false,
             microphone_routing_device_id: None,
             microphone_routing_enabled: false,
+            enable_lufs_normalization: false,
+            target_lufs: default_target_lufs(),
         }
     }
 }
@@ -183,6 +195,8 @@ mod tests {
             autostart_enabled: true,
             microphone_routing_device_id: Some("device_2".to_string()),
             microphone_routing_enabled: true,
+            enable_lufs_normalization: true,
+            target_lufs: -16.0,
         };
 
         let json = serde_json::to_string(&settings).unwrap();
@@ -210,6 +224,8 @@ mod tests {
             Some("device_2".to_string())
         );
         assert!(deserialized.microphone_routing_enabled);
+        assert!(deserialized.enable_lufs_normalization);
+        assert!((deserialized.target_lufs - (-16.0)).abs() < 0.01);
     }
 
     #[test]
@@ -231,6 +247,8 @@ mod tests {
         assert!(!settings.autostart_enabled);
         assert_eq!(settings.microphone_routing_device_id, None);
         assert!(!settings.microphone_routing_enabled);
+        assert!(!settings.enable_lufs_normalization);
+        assert!((settings.target_lufs - (-14.0)).abs() < 0.01);
     }
 
     #[test]
@@ -244,6 +262,59 @@ mod tests {
         assert!(json.contains("default_volume"));
         assert!(json.contains("volume_multiplier"));
         assert!(json.contains("minimize_to_tray"));
+    }
+
+    // -------------------------------------------------------------------------
+    // LUFS Normalization Settings Tests
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn test_settings_lufs_defaults() {
+        let settings = AppSettings::default();
+        assert!(
+            !settings.enable_lufs_normalization,
+            "Normalization should be disabled by default"
+        );
+        assert!(
+            (settings.target_lufs - (-14.0)).abs() < 0.01,
+            "Default target should be -14 LUFS"
+        );
+    }
+
+    #[test]
+    fn test_settings_lufs_serialization() {
+        let mut settings = AppSettings::default();
+        settings.enable_lufs_normalization = true;
+        settings.target_lufs = -16.0;
+
+        let json = serde_json::to_string(&settings).unwrap();
+        assert!(json.contains("enable_lufs_normalization"));
+        assert!(json.contains("target_lufs"));
+
+        let loaded: AppSettings = serde_json::from_str(&json).unwrap();
+        assert!(loaded.enable_lufs_normalization);
+        assert!((loaded.target_lufs - (-16.0)).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_settings_lufs_backward_compatibility() {
+        // Old settings JSON without LUFS fields should use defaults
+        // Minimal valid JSON (required fields + no LUFS fields)
+        let old_json = r#"{
+            "monitor_device_id": null,
+            "broadcast_device_id": null,
+            "default_volume": 0.5,
+            "last_file_path": null
+        }"#;
+        let settings: AppSettings = serde_json::from_str(old_json).unwrap();
+        assert!(
+            !settings.enable_lufs_normalization,
+            "Should default to disabled"
+        );
+        assert!(
+            (settings.target_lufs - (-14.0)).abs() < 0.01,
+            "Should default to -14"
+        );
     }
 
     // -------------------------------------------------------------------------
