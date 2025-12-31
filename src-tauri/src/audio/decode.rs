@@ -101,6 +101,7 @@ pub fn decode_audio_file(file_path: &str) -> Result<AudioData, AudioError> {
         samples,
         sample_rate,
         channels,
+        lufs: None,
     })
 }
 

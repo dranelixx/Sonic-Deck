@@ -218,6 +218,7 @@ mod tests {
             samples: vec![0.0; sample_count],
             sample_rate: 48000,
             channels: 2,
+            lufs: None,
         }
     }
 

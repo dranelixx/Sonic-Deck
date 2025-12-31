@@ -67,6 +67,8 @@ pub struct AudioData {
     pub samples: Vec<f32>,
     pub sample_rate: u32,
     pub channels: u16,
+    /// Integrated loudness (LUFS), None if not yet calculated
+    pub lufs: Option<f32>,
 }
 
 #[cfg(test)]
