@@ -172,6 +172,11 @@ export default function PlaybackSettings({
               </label>
               <span className="text-sm text-discord-text-muted">
                 {settings.target_lufs} LUFS
+                {settings.target_lufs === -14 && (
+                  <span className="ml-1 text-xs text-zinc-500">
+                    (Streaming standard)
+                  </span>
+                )}
               </span>
             </div>
             <input
@@ -191,6 +196,10 @@ export default function PlaybackSettings({
               <span>Quieter (-23)</span>
               <span>Louder (-7)</span>
             </div>
+            <p className="text-xs text-discord-text-muted">
+              -14 LUFS is the standard for YouTube, Spotify, and most streaming
+              platforms.
+            </p>
           </div>
         )}
       </div>
