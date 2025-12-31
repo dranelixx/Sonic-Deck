@@ -148,6 +148,24 @@ Current `overflow_logged` flag prevents repeat warnings but hides persistent pro
 
 ---
 
+### ISS-010: Frontend mock layer for Vite-only development
+**GitHub:** [#97](https://github.com/dranelixx/SonicDeck/issues/97)
+**Discovered:** Development workflow improvement
+**Priority:** Low
+**Type:** Enhancement (DX)
+
+**Description:**
+When developing frontend using Vite standalone (VSCode Vite extension), Tauri backend features are unavailable. All `invoke()` calls fail, making UI development slower.
+
+**Proposed solution:**
+- Create mock layer that detects `window.__TAURI__` absence
+- Return fake data for audio devices, VB-Cable status, etc.
+- Enable faster UI iteration without full Tauri rebuild
+
+**Files:** `src/utils/tauriMock.ts` (new), all components using `invoke()`
+
+---
+
 ## Resolved Issues
 
 ### ISS-002: Microphone routing latency optimization ✓

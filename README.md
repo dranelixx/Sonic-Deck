@@ -77,8 +77,11 @@ Designed for gamers, streamers, and content creators who need professional audio
 Share your soundboard with Discord friends while they can still hear your voice:
 - **One-Click Install**: Automatic VB-Cable download and setup from within the app
 - **Microphone Routing**: Your voice gets mixed with sounds - friends hear both
+- **Auto-Switch**: Windows communications device automatically switches when app is active
 - **Device Protection**: Original Windows default devices automatically restored after install
 - **Low Latency**: 100ms audio passthrough for natural voice chat
+
+> **App Setup**: In Discord, Zoom, Teams, etc. set your input device to **"Default"** (not "CABLE Output"). SonicDeck automatically manages the Windows default device.
 
 ### Dual-Audio Routing
 Play sounds to two separate audio devices simultaneously (e.g., headphones + virtual audio cable for streaming).

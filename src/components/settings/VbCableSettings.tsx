@@ -97,6 +97,10 @@ export default function VbCableSettings({
       await invoke("enable_microphone_routing", {
         microphoneId: selectedMicrophone,
       });
+
+      // Activate communications mode so Discord uses VB-Cable
+      await invoke("activate_vbcable_comm_mode");
+
       setIsRoutingActive(true);
 
       // Save to settings
@@ -120,6 +124,10 @@ export default function VbCableSettings({
 
     try {
       await invoke("disable_microphone_routing");
+
+      // Deactivate communications mode so Discord uses real microphone
+      await invoke("deactivate_vbcable_comm_mode");
+
       setIsRoutingActive(false);
 
       // Save to settings
@@ -325,10 +333,11 @@ export default function VbCableSettings({
           {/* Microphone Routing Section */}
           <div className="pt-4 border-t border-discord-darker">
             <h4 className="text-sm font-medium text-discord-text mb-2">
-              Microphone Routing (for Discord)
+              Microphone Routing
             </h4>
             <p className="text-xs text-discord-text-muted mb-3">
-              Enable this so your friends can hear you AND the sounds.
+              Routes your microphone through VB-Cable so others hear you AND the
+              sounds.
             </p>
 
             <div className="flex items-center gap-3">
@@ -376,6 +385,21 @@ export default function VbCableSettings({
                 Microphone is being routed to CABLE Input
               </p>
             )}
+
+            {/* Communication Apps Setup Tip */}
+            <div className="mt-3 p-3 bg-discord-darker rounded text-xs text-discord-text-muted">
+              <p className="font-medium text-discord-text mb-1">
+                Important: App Setup
+              </p>
+              <p>
+                Set your input device to{" "}
+                <span className="text-discord-primary font-medium">
+                  Default
+                </span>{" "}
+                in communication apps (Discord, Zoom, Teams). SonicDeck switches
+                the Windows default automatically.
+              </p>
+            </div>
           </div>
 
           {/* Tip: CABLE In 16 Ch Device */}

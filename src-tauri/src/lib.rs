@@ -336,6 +336,10 @@ pub fn run() {
             commands::start_vb_cable_uninstall,
             // Sound settings command
             commands::open_sound_settings,
+            // VB-Cable communications mode commands
+            commands::activate_vbcable_comm_mode,
+            commands::deactivate_vbcable_comm_mode,
+            commands::is_vbcable_comm_mode_active,
         ])
         .setup(|app| {
             // Initialize app state (load all data from disk once at startup)
@@ -393,6 +397,9 @@ pub fn run() {
                 // Cleanup orphaned VB-Cable temp files from previous sessions
                 vbcable::cleanup_temp_files();
 
+                // Recover from potential crash - restore original communications device
+                vbcable::recover_comm_mode();
+
                 // Register saved hotkeys
                 if let Err(e) = register_saved_hotkeys(app.handle()) {
                     error!("Failed to register saved hotkeys: {}", e);
@@ -429,6 +436,12 @@ pub fn run() {
                         if let Err(e) = vbcable::enable_routing(&device_id) {
                             error!("Failed to auto-enable microphone routing: {}", e);
                         }
+
+                        // Also activate communications mode so Discord uses VB-Cable
+                        info!("Auto-activating VB-Cable communications mode");
+                        if let Err(e) = vbcable::activate_comm_mode() {
+                            error!("Failed to auto-activate communications mode: {}", e);
+                        }
                     }
                 }
             }
@@ -455,6 +468,20 @@ pub fn run() {
                 }
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app, event| {
+            if let tauri::RunEvent::Exit = event {
+                // Deactivate VB-Cable communications mode on exit
+                info!("App exiting - deactivating VB-Cable communications mode");
+                if let Err(e) = vbcable::deactivate_comm_mode() {
+                    error!("Failed to deactivate communications mode on exit: {}", e);
+                }
+
+                // Stop microphone routing
+                if let Err(e) = vbcable::disable_routing() {
+                    error!("Failed to disable microphone routing on exit: {}", e);
+                }
+            }
+        });
 }

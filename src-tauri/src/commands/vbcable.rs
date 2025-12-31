@@ -1,9 +1,10 @@
 //! VB-Cable related Tauri commands
 
 use crate::vbcable::{
-    cleanup_temp_files, detect_vb_cable, disable_routing, enable_routing, get_routing_status,
-    install_vbcable, list_capture_devices, uninstall_vbcable, wait_for_vb_cable,
-    DefaultDeviceManager, RestoreResult, SavedDefaults, VbCableStatus,
+    activate_comm_mode, cleanup_temp_files, deactivate_comm_mode, detect_vb_cable, disable_routing,
+    enable_routing, get_routing_status, install_vbcable, is_comm_mode_active, list_capture_devices,
+    uninstall_vbcable, wait_for_vb_cable, DefaultDeviceManager, RestoreResult, SavedDefaults,
+    VbCableStatus,
 };
 use tracing::info;
 
@@ -169,4 +170,37 @@ pub fn start_vb_cable_uninstall() -> Result<(), String> {
 pub fn open_sound_settings() -> Result<(), String> {
     info!("Opening Windows Sound settings (mmsys.cpl)");
     open::that("mmsys.cpl").map_err(|e| format!("Failed to open sound settings: {}", e))
+}
+
+// ============================================================================
+// VB-Cable Communications Mode Commands
+// ============================================================================
+
+/// Activate VB-Cable communications mode
+///
+/// Sets VB-Cable Output as the Windows default communications capture device.
+/// This makes Discord/Teams/Zoom automatically use VB-Cable while the app is running.
+/// The original device is saved and restored when deactivate_vbcable_comm_mode is called.
+#[tauri::command]
+pub fn activate_vbcable_comm_mode() -> Result<(), String> {
+    info!("Activating VB-Cable communications mode");
+    activate_comm_mode()
+}
+
+/// Deactivate VB-Cable communications mode
+///
+/// Restores the original Windows default communications capture device.
+/// Call this when the app is closing or when the user disables VB-Cable integration.
+#[tauri::command]
+pub fn deactivate_vbcable_comm_mode() -> Result<(), String> {
+    info!("Deactivating VB-Cable communications mode");
+    deactivate_comm_mode()
+}
+
+/// Check if VB-Cable communications mode is active
+///
+/// Returns true if VB-Cable is currently set as the communications capture device.
+#[tauri::command]
+pub fn is_vbcable_comm_mode_active() -> bool {
+    is_comm_mode_active()
 }
