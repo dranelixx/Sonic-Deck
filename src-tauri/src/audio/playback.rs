@@ -15,12 +15,19 @@ use super::{AudioData, AudioError};
 const PREFERRED_BUFFER_SIZE: u32 = 256;
 
 /// Create and start a playback stream on a specific device
+///
+/// # LUFS Normalization
+///
+/// When `lufs_gain` is provided (non-1.0), it is applied multiplicatively
+/// with the volume. This allows for loudness normalization across sounds.
+/// The gain is calculated once at stream creation (not per-sample) for performance.
 pub fn create_playback_stream(
     device: &Device,
     audio_data: Arc<AudioData>,
     volume: Arc<Mutex<f32>>,
     start_frame: Option<usize>,
     end_frame: Option<usize>,
+    lufs_gain: f32,
 ) -> Result<Stream, AudioError> {
     let start = Instant::now();
     let device_name = device.name().unwrap_or_else(|_| "Unknown".to_string());
@@ -72,6 +79,15 @@ pub fn create_playback_stream(
         );
     }
 
+    // Log LUFS gain if applied
+    if (lufs_gain - 1.0).abs() > 0.001 {
+        debug!(
+            lufs_gain = format!("{:.3}", lufs_gain),
+            lufs_gain_db = format!("{:.1}", 20.0 * lufs_gain.log10()),
+            "LUFS normalization active"
+        );
+    }
+
     // Try to build stream with low-latency config, fallback to default if it fails
     let (stream, used_buffer_size) = build_stream_with_fallback(
         device,
@@ -84,6 +100,7 @@ pub fn create_playback_stream(
         end_frame_arc,
         channels,
         rate_ratio,
+        lufs_gain,
     )?;
 
     stream
@@ -125,6 +142,7 @@ const FALLBACK_BUFFER_SIZES: [u32; 3] = [256, 512, 1024];
 /// * `end_frame` - End frame for trimmed playback
 /// * `channels` - Number of output channels
 /// * `rate_ratio` - Sample rate conversion ratio
+/// * `lufs_gain` - LUFS normalization gain multiplier (1.0 = no change)
 ///
 /// # Returns
 ///
@@ -147,6 +165,7 @@ fn build_stream_with_fallback(
     end_frame: Arc<usize>,
     channels: usize,
     rate_ratio: f64,
+    lufs_gain: f32,
 ) -> Result<(Stream, String), AudioError> {
     // Try each buffer size in order
     for &buffer_size in &FALLBACK_BUFFER_SIZES {
@@ -166,6 +185,7 @@ fn build_stream_with_fallback(
             end_frame.clone(),
             channels,
             rate_ratio,
+            lufs_gain,
         ) {
             Ok(stream) => {
                 if buffer_size != PREFERRED_BUFFER_SIZE {
@@ -200,6 +220,7 @@ fn build_stream_with_fallback(
         end_frame,
         channels,
         rate_ratio,
+        lufs_gain,
     )?;
 
     Ok((stream, "Default".to_string()))
@@ -222,6 +243,7 @@ fn build_stream_with_fallback(
 /// * `end_frame` - End frame for trimmed playback
 /// * `channels` - Number of output channels
 /// * `rate_ratio` - Sample rate conversion ratio
+/// * `lufs_gain` - LUFS normalization gain multiplier (1.0 = no change)
 ///
 /// # Returns
 ///
@@ -234,6 +256,7 @@ fn build_stream_with_fallback(
 /// The audio callback performs:
 /// - Linear interpolation for sample rate conversion
 /// - Volume scaling with square root curve
+/// - LUFS normalization gain application
 /// - Multi-channel mapping (silences extra output channels)
 #[allow(clippy::too_many_arguments)]
 fn try_build_stream(
@@ -246,6 +269,7 @@ fn try_build_stream(
     end_frame: Arc<usize>,
     channels: usize,
     rate_ratio: f64,
+    lufs_gain: f32,
 ) -> Result<Stream, AudioError> {
     trace!(
         sample_format = ?sample_format,
@@ -269,6 +293,7 @@ fn try_build_stream(
                         channels,
                         rate_ratio,
                         *end_frame,
+                        lufs_gain,
                     );
                 },
                 |err| error!("Stream error: {}", err),
@@ -288,6 +313,7 @@ fn try_build_stream(
                         channels,
                         rate_ratio,
                         *end_frame,
+                        lufs_gain,
                     );
                 },
                 |err| error!("Stream error: {}", err),
@@ -307,6 +333,7 @@ fn try_build_stream(
                         channels,
                         rate_ratio,
                         *end_frame,
+                        lufs_gain,
                     );
                 },
                 |err| error!("Stream error: {}", err),
@@ -321,6 +348,7 @@ fn try_build_stream(
 }
 
 /// Write audio data to f32 output buffer with resampling (linear interpolation)
+#[allow(clippy::too_many_arguments)]
 fn write_audio_f32(
     output: &mut [f32],
     audio_data: &AudioData,
@@ -329,6 +357,7 @@ fn write_audio_f32(
     output_channels: usize,
     rate_ratio: f64,
     end_frame: usize,
+    lufs_gain: f32,
 ) {
     let mut index = sample_index.lock().unwrap();
     let input_channels = audio_data.channels as usize;
@@ -336,7 +365,8 @@ fn write_audio_f32(
 
     // Apply square root volume curve with base attenuation
     // Base multiplier of 0.2 for safe default volume (20% of full amplitude)
-    let scaled_volume = volume.sqrt() * 0.2;
+    // LUFS gain is applied multiplicatively for loudness normalization
+    let scaled_volume = volume.sqrt() * 0.2 * lufs_gain;
 
     for frame in output.chunks_mut(output_channels) {
         if *index >= max_frame - 1.0 {
@@ -380,6 +410,7 @@ fn write_audio_f32(
 }
 
 /// Write audio data to i16 output buffer with resampling (linear interpolation)
+#[allow(clippy::too_many_arguments)]
 fn write_audio_i16(
     output: &mut [i16],
     audio_data: &AudioData,
@@ -388,6 +419,7 @@ fn write_audio_i16(
     output_channels: usize,
     rate_ratio: f64,
     end_frame: usize,
+    lufs_gain: f32,
 ) {
     let mut index = sample_index.lock().unwrap();
     let input_channels = audio_data.channels as usize;
@@ -395,7 +427,8 @@ fn write_audio_i16(
 
     // Apply square root volume curve with base attenuation
     // Base multiplier of 0.2 for safe default volume (20% of full amplitude)
-    let scaled_volume = volume.sqrt() * 0.2;
+    // LUFS gain is applied multiplicatively for loudness normalization
+    let scaled_volume = volume.sqrt() * 0.2 * lufs_gain;
 
     for frame in output.chunks_mut(output_channels) {
         if *index >= max_frame - 1.0 {
@@ -439,6 +472,7 @@ fn write_audio_i16(
 }
 
 /// Write audio data to u16 output buffer with resampling (linear interpolation)
+#[allow(clippy::too_many_arguments)]
 fn write_audio_u16(
     output: &mut [u16],
     audio_data: &AudioData,
@@ -447,6 +481,7 @@ fn write_audio_u16(
     output_channels: usize,
     rate_ratio: f64,
     end_frame: usize,
+    lufs_gain: f32,
 ) {
     let mut index = sample_index.lock().unwrap();
     let input_channels = audio_data.channels as usize;
@@ -454,7 +489,8 @@ fn write_audio_u16(
 
     // Apply square root volume curve with base attenuation
     // Base multiplier of 0.2 for safe default volume (20% of full amplitude)
-    let scaled_volume = volume.sqrt() * 0.2;
+    // LUFS gain is applied multiplicatively for loudness normalization
+    let scaled_volume = volume.sqrt() * 0.2 * lufs_gain;
 
     for frame in output.chunks_mut(output_channels) {
         if *index >= max_frame - 1.0 {
@@ -511,6 +547,51 @@ fn write_audio_u16(
 #[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn calculate_scaled_volume(volume: f32) -> f32 {
     volume.sqrt() * 0.2
+}
+
+/// Convert decibels to linear gain multiplier.
+///
+/// Examples:
+/// - 0 dB → 1.0 (no change)
+/// - +6 dB → 2.0 (double amplitude)
+/// - -6 dB → 0.5 (half amplitude)
+/// - +20 dB → 10.0
+#[inline]
+pub(crate) fn db_to_linear(db: f32) -> f32 {
+    10.0_f32.powf(db / 20.0)
+}
+
+/// Calculate gain adjustment for LUFS normalization.
+///
+/// Returns linear gain multiplier to reach target loudness.
+/// Gain is clamped to +/- 12 dB to prevent extreme adjustments.
+///
+/// # Arguments
+/// * `sound_lufs` - Measured LUFS of the sound (None = no adjustment)
+/// * `target_lufs` - Target loudness in LUFS (e.g., -14.0)
+/// * `enabled` - Whether normalization is enabled
+///
+/// # Returns
+/// Linear gain multiplier (1.0 = no change)
+#[inline]
+pub fn calculate_lufs_gain(sound_lufs: Option<f32>, target_lufs: f32, enabled: bool) -> f32 {
+    if !enabled {
+        return 1.0;
+    }
+
+    match sound_lufs {
+        Some(lufs) => {
+            // Difference in LUFS = difference in dB
+            let diff_db = target_lufs - lufs;
+
+            // Clamp to reasonable range to prevent extreme gain
+            // +12 dB ≈ 4x amplification, -12 dB ≈ 0.25x
+            let clamped_db = diff_db.clamp(-12.0, 12.0);
+
+            db_to_linear(clamped_db)
+        }
+        None => 1.0, // No LUFS data available, no adjustment
+    }
 }
 
 /// Linear interpolation between two samples.
@@ -607,5 +688,134 @@ mod tests {
     fn test_lerp_sample_same_values() {
         let result = lerp_sample(5.0, 5.0, 0.7);
         assert!((result - 5.0).abs() < 0.0001);
+    }
+
+    // ========== Volume Engine V2 tests ==========
+
+    #[test]
+    fn test_db_to_linear_zero() {
+        let gain = db_to_linear(0.0);
+        assert!(
+            (gain - 1.0).abs() < 0.0001,
+            "0 dB should be 1.0, got {}",
+            gain
+        );
+    }
+
+    #[test]
+    fn test_db_to_linear_positive() {
+        let gain = db_to_linear(6.0);
+        assert!(
+            (gain - 2.0).abs() < 0.01,
+            "+6 dB should be ~2.0, got {}",
+            gain
+        );
+
+        let gain = db_to_linear(20.0);
+        assert!(
+            (gain - 10.0).abs() < 0.01,
+            "+20 dB should be ~10.0, got {}",
+            gain
+        );
+    }
+
+    #[test]
+    fn test_db_to_linear_negative() {
+        let gain = db_to_linear(-6.0);
+        assert!(
+            (gain - 0.5).abs() < 0.01,
+            "-6 dB should be ~0.5, got {}",
+            gain
+        );
+
+        let gain = db_to_linear(-20.0);
+        assert!(
+            (gain - 0.1).abs() < 0.01,
+            "-20 dB should be ~0.1, got {}",
+            gain
+        );
+    }
+
+    #[test]
+    fn test_lufs_gain_disabled() {
+        let gain = calculate_lufs_gain(Some(-20.0), -14.0, false);
+        assert!(
+            (gain - 1.0).abs() < 0.0001,
+            "Disabled should return 1.0, got {}",
+            gain
+        );
+    }
+
+    #[test]
+    fn test_lufs_gain_no_data() {
+        let gain = calculate_lufs_gain(None, -14.0, true);
+        assert!(
+            (gain - 1.0).abs() < 0.0001,
+            "No LUFS data should return 1.0, got {}",
+            gain
+        );
+    }
+
+    #[test]
+    fn test_lufs_gain_quiet_sound() {
+        // Sound at -20 LUFS, target -14 LUFS -> boost by 6 dB -> gain ~2.0
+        let gain = calculate_lufs_gain(Some(-20.0), -14.0, true);
+        let expected = db_to_linear(6.0);
+        assert!(
+            (gain - expected).abs() < 0.01,
+            "Expected {}, got {}",
+            expected,
+            gain
+        );
+    }
+
+    #[test]
+    fn test_lufs_gain_loud_sound() {
+        // Sound at -10 LUFS, target -14 LUFS -> reduce by 4 dB -> gain ~0.63
+        let gain = calculate_lufs_gain(Some(-10.0), -14.0, true);
+        let expected = db_to_linear(-4.0);
+        assert!(
+            (gain - expected).abs() < 0.01,
+            "Expected {}, got {}",
+            expected,
+            gain
+        );
+    }
+
+    #[test]
+    fn test_lufs_gain_clamped_boost() {
+        // Sound at -40 LUFS, target -14 LUFS -> would be +26 dB, clamped to +12 dB
+        let gain = calculate_lufs_gain(Some(-40.0), -14.0, true);
+        let expected = db_to_linear(12.0); // ~3.98
+        assert!(
+            (gain - expected).abs() < 0.01,
+            "Should clamp to +12 dB ({:.2}), got {:.2}",
+            expected,
+            gain
+        );
+    }
+
+    #[test]
+    fn test_lufs_gain_clamped_cut() {
+        // Sound at 0 LUFS, target -14 LUFS -> would be -14 dB, clamped to -12 dB
+        let gain = calculate_lufs_gain(Some(0.0), -14.0, true);
+        let expected = db_to_linear(-12.0); // ~0.25
+        assert!(
+            (gain - expected).abs() < 0.01,
+            "Should clamp to -12 dB ({:.2}), got {:.2}",
+            expected,
+            gain
+        );
+    }
+
+    #[test]
+    fn test_lufs_gain_at_target() {
+        // Sound already at target -> no adjustment
+        let gain = calculate_lufs_gain(Some(-14.0), -14.0, true);
+        assert!(
+            (gain - 1.0).abs() < 0.0001,
+            "At target should return 1.0, got {}",
+            gain
+        );
     }
 }

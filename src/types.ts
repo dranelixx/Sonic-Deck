@@ -16,13 +16,15 @@ export interface AppSettings {
   monitor_device_id: string | null;
   broadcast_device_id: string | null;
   default_volume: number;
-  volume_multiplier: number; // Global volume scaling (0.1 - 1.0), default 0.2
+  volume_multiplier: number; // Global volume boost multiplier (1.0 = off, 1.1-3.0 = boosted)
   last_file_path: string | null;
   minimize_to_tray: boolean; // Close button behavior: true = minimize to tray, false = quit app
   start_minimized: boolean; // Start application minimized to tray
   autostart_enabled: boolean; // Enable autostart on system boot
   microphone_routing_device_id: string | null; // Microphone device ID for VB-Cable routing
   microphone_routing_enabled: boolean; // Whether microphone routing is enabled
+  enable_lufs_normalization: boolean; // Enable LUFS-based loudness normalization
+  target_lufs: number; // Target loudness in LUFS (range: -23 to -7, default: -14)
 }
 
 // ============================================================================

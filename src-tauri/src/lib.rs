@@ -164,8 +164,9 @@ fn handle_global_shortcut(
     // Determine volume
     let volume = sound.volume.unwrap_or(default_volume);
 
-    // Get audio manager from state
+    // Get audio manager and app state from state
     let manager = app.state::<AudioManager>();
+    let app_state = app.state::<AppState>();
 
     // Trigger playback
     match commands::play_dual_output(
@@ -177,6 +178,7 @@ fn handle_global_shortcut(
         sound.trim_end_ms,
         Some(sound.id.as_str().to_owned()),
         manager,
+        app_state,
         app.clone(),
     ) {
         Ok(result) => match result.action.as_str() {

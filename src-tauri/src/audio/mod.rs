@@ -14,7 +14,7 @@ pub use cache::CacheStats;
 pub use device::enumerate_devices;
 pub use error::AudioError;
 pub use manager::{AudioManager, SoundState};
-pub use playback::create_playback_stream;
+pub use playback::{calculate_lufs_gain, create_playback_stream};
 pub use waveform::{generate_peaks, WaveformData};
 
 use serde::{Deserialize, Serialize};
@@ -67,6 +67,8 @@ pub struct AudioData {
     pub samples: Vec<f32>,
     pub sample_rate: u32,
     pub channels: u16,
+    /// Integrated loudness (LUFS), None if not yet calculated
+    pub lufs: Option<f32>,
 }
 
 #[cfg(test)]

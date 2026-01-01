@@ -23,6 +23,8 @@ cpal = "0.15"
 lru = "0.12"
 # Symphonia for audio decoding (MP3, OGG/Vorbis, M4A/AAC support)
 symphonia = { version = "0.5", features = ["mp3", "isomp4", "aac", "vorbis"] }
+# LUFS loudness measurement (EBU R128 compliant)
+ebur128 = "0.1"
 tauri-plugin-dialog = "2.0"
 
 # Logging dependencies

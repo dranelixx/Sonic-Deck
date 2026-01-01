@@ -2,6 +2,7 @@
 //!
 //! Supports MP3, WAV, OGG Vorbis, and MP4/M4A formats.
 
+use ebur128::{EbuR128, Mode};
 use std::fs::File;
 use std::time::Instant;
 use symphonia::core::audio::SampleBuffer;
@@ -14,6 +15,34 @@ use symphonia::core::probe::Hint;
 use tracing::{debug, warn};
 
 use super::{AudioData, AudioError};
+
+/// Calculate integrated loudness (LUFS) using EBU R 128 standard.
+///
+/// Returns None if:
+/// - Audio is pure silence (LUFS < -70)
+/// - Calculation fails (invalid samples, too short)
+/// - Result is not a valid number (NaN, Infinity)
+///
+/// For mono audio, measurement accounts for dual-speaker playback.
+pub(crate) fn calculate_lufs(samples: &[f32], sample_rate: u32, channels: u16) -> Option<f32> {
+    // Need at least 100ms of audio for reliable measurement
+    let min_samples = (sample_rate as usize * channels as usize) / 10;
+    if samples.len() < min_samples {
+        return None;
+    }
+
+    let mut ebur = EbuR128::new(channels as u32, sample_rate, Mode::I).ok()?;
+    ebur.add_frames_f32(samples).ok()?;
+
+    let lufs = ebur.loudness_global().ok()?;
+
+    // Filter out silence and invalid values
+    if lufs.is_finite() && lufs > -70.0 {
+        Some(lufs as f32)
+    } else {
+        None
+    }
+}
 
 /// Decode an audio file to raw PCM samples
 pub fn decode_audio_file(file_path: &str) -> Result<AudioData, AudioError> {
@@ -85,6 +114,16 @@ pub fn decode_audio_file(file_path: &str) -> Result<AudioData, AudioError> {
         return Err(AudioError::NoData);
     }
 
+    // Calculate LUFS for normalization
+    let lufs = calculate_lufs(&samples, sample_rate, channels);
+    if let Some(lufs_value) = lufs {
+        debug!(
+            "Calculated LUFS: {:.1} for {} samples",
+            lufs_value,
+            samples.len()
+        );
+    }
+
     let duration_ms = start.elapsed().as_millis();
     let duration_secs = samples.len() as f64 / (sample_rate as f64 * channels as f64);
     debug!(
@@ -94,6 +133,7 @@ pub fn decode_audio_file(file_path: &str) -> Result<AudioData, AudioError> {
         sample_rate = sample_rate,
         channels = channels,
         audio_duration_secs = format!("{:.2}", duration_secs),
+        lufs = ?lufs,
         "Audio decode complete"
     );
 
@@ -101,6 +141,7 @@ pub fn decode_audio_file(file_path: &str) -> Result<AudioData, AudioError> {
         samples,
         sample_rate,
         channels,
+        lufs,
     })
 }
 
@@ -281,5 +322,64 @@ mod tests {
             );
             assert!(!audio.samples.is_empty(), "{} has no samples", filename);
         }
+    }
+
+    // ========== LUFS calculation tests ==========
+
+    #[test]
+    fn test_calculate_lufs_returns_valid_range() {
+        // Use existing test fixture
+        let path = get_fixture_path("test_mono.mp3");
+        let audio = decode_audio_file(path.to_str().unwrap()).unwrap();
+
+        // LUFS should be present and in valid range
+        assert!(
+            audio.lufs.is_some(),
+            "LUFS should be calculated for test fixture"
+        );
+        let lufs = audio.lufs.unwrap();
+        assert!(
+            lufs >= -70.0 && lufs <= 0.0,
+            "LUFS {} outside valid range [-70, 0]",
+            lufs
+        );
+    }
+
+    #[test]
+    fn test_calculate_lufs_silence_returns_none() {
+        // Pure silence should return None
+        let silence = vec![0.0f32; 48000]; // 1 second at 48kHz mono
+        let lufs = calculate_lufs(&silence, 48000, 1);
+        assert!(lufs.is_none(), "Silence should return None");
+    }
+
+    #[test]
+    fn test_calculate_lufs_short_audio_returns_none() {
+        // Very short audio (< 100ms) should return None
+        let short = vec![0.5f32; 1000]; // ~20ms at 48kHz
+        let lufs = calculate_lufs(&short, 48000, 1);
+        assert!(lufs.is_none(), "Very short audio should return None");
+    }
+
+    #[test]
+    fn test_calculate_lufs_with_tone() {
+        // Generate 1 second of 440Hz sine wave at -20 dBFS
+        let sample_rate = 48000u32;
+        let amplitude = 0.1f32; // ~-20 dBFS
+        let samples: Vec<f32> = (0..sample_rate)
+            .map(|i| {
+                amplitude
+                    * (2.0 * std::f32::consts::PI * 440.0 * i as f32 / sample_rate as f32).sin()
+            })
+            .collect();
+
+        let lufs = calculate_lufs(&samples, sample_rate, 1);
+        assert!(lufs.is_some(), "Tone should have measurable LUFS");
+        let lufs = lufs.unwrap();
+        assert!(
+            lufs > -40.0 && lufs < -10.0,
+            "440Hz tone at -20dBFS should be around -20 to -30 LUFS, got {}",
+            lufs
+        );
     }
 }

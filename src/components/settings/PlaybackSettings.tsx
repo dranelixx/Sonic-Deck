@@ -122,6 +122,87 @@ export default function PlaybackSettings({
           </p>
         )}
       </div>
+
+      {/* Loudness Normalization */}
+      <div className="space-y-4">
+        <h3 className="text-sm font-medium text-zinc-400">
+          Loudness Normalization
+        </h3>
+
+        {/* Enable toggle */}
+        <div className="flex items-center justify-between">
+          <div>
+            <label className="text-sm text-discord-text">
+              Enable loudness normalization
+            </label>
+            <p className="text-xs text-discord-text-muted">
+              Automatically adjust volume so all sounds play at similar loudness
+            </p>
+          </div>
+          <button
+            onClick={() =>
+              onUpdateSetting(
+                "enable_lufs_normalization",
+                !settings.enable_lufs_normalization
+              )
+            }
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              settings.enable_lufs_normalization
+                ? "bg-discord-primary"
+                : "bg-zinc-600"
+            }`}
+            aria-label="Toggle loudness normalization"
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                settings.enable_lufs_normalization
+                  ? "translate-x-6"
+                  : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Target loudness slider - only visible when enabled */}
+        {settings.enable_lufs_normalization && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm text-discord-text">
+                Target loudness
+              </label>
+              <span className="text-sm text-discord-text-muted">
+                {settings.target_lufs} LUFS
+                {settings.target_lufs === -14 && (
+                  <span className="ml-1 text-xs text-zinc-500">
+                    (Streaming standard)
+                  </span>
+                )}
+              </span>
+            </div>
+            <input
+              type="range"
+              min="-23"
+              max="-7"
+              step="1"
+              value={settings.target_lufs}
+              onChange={(e) =>
+                onUpdateSetting("target_lufs", parseFloat(e.target.value))
+              }
+              className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer"
+              style={{ accentColor: "#5865f2" }}
+              aria-label="Target loudness level"
+            />
+            <div className="flex justify-between text-xs text-discord-text-muted">
+              <span>Quieter (-23)</span>
+              <span>Louder (-7)</span>
+            </div>
+            <p className="text-xs text-discord-text-muted">
+              -14 LUFS is the standard for YouTube, Spotify, and most streaming
+              platforms.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

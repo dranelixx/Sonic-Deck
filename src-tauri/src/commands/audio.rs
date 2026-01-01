@@ -19,6 +19,7 @@ use tracing::{debug, error, info};
 use crate::audio::{
     self, AudioDevice, AudioManager, CacheStats, DeviceId, SoundState, WaveformData,
 };
+use crate::state::AppState;
 
 /// Playback progress event payload
 #[derive(Clone, serde::Serialize)]
@@ -47,6 +48,12 @@ pub struct PlaybackResult {
 }
 
 /// Plays an audio file simultaneously to two different output devices
+///
+/// # LUFS Normalization
+///
+/// When LUFS normalization is enabled in settings, the sound's LUFS value
+/// (calculated during decode) is used to adjust playback volume to match
+/// the target loudness level.
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 pub fn play_dual_output(
@@ -58,15 +65,24 @@ pub fn play_dual_output(
     trim_end_ms: Option<u64>,
     sound_id: Option<String>,
     manager: State<'_, AudioManager>,
+    state: State<'_, AppState>,
     app_handle: tauri::AppHandle,
 ) -> Result<PlaybackResult, String> {
     let volume = volume.clamp(0.0, 1.0);
     let sound_id = sound_id.unwrap_or_default();
 
+    // Read LUFS normalization settings from AppState
+    let settings = state.read_settings();
+    let enable_lufs = settings.enable_lufs_normalization;
+    let target_lufs = settings.target_lufs;
+    drop(settings); // Release read lock early
+
     debug!(
         sound_id = %sound_id,
         file_path = %file_path,
         volume = volume,
+        enable_lufs = enable_lufs,
+        target_lufs = target_lufs,
         "Playback requested"
     );
 
@@ -129,6 +145,9 @@ pub fn play_dual_output(
     let cache = manager.get_cache();
     let sound_id_clone = sound_id.clone();
     let old_playback_to_stop = stopped_playback_id.clone();
+    // LUFS settings are captured here (read once at playback start, not per-sample)
+    let enable_lufs_clone = enable_lufs;
+    let target_lufs_clone = target_lufs;
 
     // Spawn dedicated playback thread (including decoding to avoid blocking UI)
     thread::spawn(move || {
@@ -240,13 +259,27 @@ pub fn play_dual_output(
             trim_start_ms.map(|ms| ((ms as f64 / 1000.0) * sample_rate as f64) as usize);
         let end_frame = trim_end_ms.map(|ms| ((ms as f64 / 1000.0) * sample_rate as f64) as usize);
 
-        // Create streams with shared volume state and trim parameters
+        // Calculate LUFS gain for normalization (once at stream creation, not per-sample)
+        let lufs_gain =
+            audio::calculate_lufs_gain(audio_data.lufs, target_lufs_clone, enable_lufs_clone);
+
+        if enable_lufs_clone {
+            debug!(
+                sound_lufs = ?audio_data.lufs,
+                target_lufs = target_lufs_clone,
+                lufs_gain = format!("{:.3}", lufs_gain),
+                "LUFS normalization applied"
+            );
+        }
+
+        // Create streams with shared volume state, trim parameters, and LUFS gain
         let stream_1 = match audio::create_playback_stream(
             device_1,
             audio_data.clone(),
             volume_state.clone(),
             start_frame,
             end_frame,
+            lufs_gain,
         ) {
             Ok(s) => s,
             Err(e) => {
@@ -267,6 +300,7 @@ pub fn play_dual_output(
             volume_state.clone(),
             start_frame,
             end_frame,
+            lufs_gain,
         ) {
             Ok(s) => s,
             Err(e) => {

@@ -29,6 +29,8 @@ export default function Settings() {
     autostart_enabled: false,
     microphone_routing_device_id: null,
     microphone_routing_enabled: false,
+    enable_lufs_normalization: false,
+    target_lufs: -14,
   });
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);

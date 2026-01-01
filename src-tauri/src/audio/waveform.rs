@@ -87,6 +87,7 @@ mod tests {
             samples,
             sample_rate,
             channels,
+            lufs: None,
         }
     }
 
