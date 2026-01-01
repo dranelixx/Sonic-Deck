@@ -1,5 +1,7 @@
 import FullWaveform from "../audio/FullWaveform";
 import { ActiveWaveform } from "../../hooks/useAudioPlayback";
+import { useUpdateCheck } from "../../hooks/useUpdateCheck";
+import UpdateNotification from "../common/UpdateNotification";
 
 interface DashboardHeaderProps {
   volume: number;
@@ -18,6 +20,8 @@ export default function DashboardHeader({
   isWaveformExiting,
   playingSoundIds,
 }: DashboardHeaderProps) {
+  const updateState = useUpdateCheck();
+
   return (
     <div className="bg-discord-darker px-6 py-4 border-b border-discord-dark">
       <div className="flex items-center justify-between gap-4 h-10">
@@ -56,6 +60,9 @@ export default function DashboardHeader({
 
         {/* Right: Controls */}
         <div className="flex items-center gap-3 flex-shrink-0 h-full">
+          {/* Update Notification Badge */}
+          <UpdateNotification updateState={updateState} />
+
           {/* Volume Control */}
           <div className="flex items-center gap-2">
             <input

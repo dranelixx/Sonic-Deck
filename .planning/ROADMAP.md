@@ -101,6 +101,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Test Coverage | 3/3 | Complete | 2025-12-29 |
 | 2. VB-Cable Integration | 5/5 | Complete | 2025-12-30 |
 | 3. Audio Core Polish | 7/7 | Complete | 2025-12-31 |
-| 4. Auto-Updater | 1/3 | In progress | - |
+| 4. Auto-Updater | 2/3 | In progress | - |
 | 5. Import/Export | 0/TBD | Not started | - |
 | 6. UI/UX Polish | 0/TBD | Not started | - |
