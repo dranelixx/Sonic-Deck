@@ -131,9 +131,9 @@ SonicDeck is a high-performance desktop soundboard application built with:
   2. CI runs: Frontend + Rust checks + **Claude Code Review**
   3. After Claude Review approval: Add version bump commit to PR
   4. Update `version.json` in PR, commit: `chore: bump version to vX.Y.Z`
-  5. Squash merge to `main` (includes version bump)
+  5. Merge to `main` (includes version bump)
   6. Create tag (`git tag vX.Y.Z`), push tag (`git push --tags`)
-- **Interactive Rebase**: `git rebase -i develop` before PR to organize/squash commits (especially if chaotic)
+- **Interactive Rebase**: `git rebase -i develop` before PR to squash WIP commits and clean up history
 - **Pre-commit hooks**: Automatic lint, format, typecheck (Husky) on every commit
 - **CI/CD**:
   - Frontend/Rust checks: Run on `main`, `develop`, `fix/**`, `feature/**`, `refactor/**` branches and PRs to `main`/`develop`
@@ -141,9 +141,9 @@ SonicDeck is a high-performance desktop soundboard application built with:
   - Release workflow: Triggered by version tags, auto-generates release notes from PR labels
   - Release notes: Configured via `.github/release.yml`, categorizes PRs by labels
 - **Merge Strategy**:
-  - PRs to `develop`: **Merge commit** (preserves full commit history)
-  - PRs to `main` (releases): **Squash merge** (1 clean commit, includes version bump)
-  - Version bump: Added to PR after Claude Code Review approval, before squash merge
+  - PRs to `develop`: **Merge commit** (preserves commit history)
+  - PRs to `main` (releases): **Merge commit** (no squash - preserves branch tracking)
+  - Version bump: Added to PR after Claude Code Review approval, before merge
 
 ---
 
