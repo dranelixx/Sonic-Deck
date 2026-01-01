@@ -144,6 +144,10 @@ SonicDeck is a high-performance desktop soundboard application built with:
   - PRs to `develop`: **Merge commit** (preserves commit history)
   - PRs to `main` (releases): **Merge commit** (no squash - preserves branch tracking)
   - Version bump: Added to PR after Claude Code Review approval, before merge
+- **Issue References in Merge Commits**:
+  - PRs to `develop`: Use `Related to #XX` (feature not yet available to end users)
+  - PRs to `main`: Use `Closes #XX` (end users now have access)
+  - Never use `Closes` for merges to `develop` - technically incorrect
 
 ---
 
